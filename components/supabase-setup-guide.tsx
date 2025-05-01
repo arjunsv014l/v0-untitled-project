@@ -50,14 +50,14 @@ export function SupabaseSetupGuide() {
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">Project URL</span>
               <button
-                onClick={() => copyToClipboard("NEXT_PUBLIC_SUPABASE_URL = [Your Project URL]", "url")}
+                onClick={() => copyToClipboard("SUPABASE_PROJECT_URL=https://your-project-id.supabase.co", "url")}
                 className="text-gray-500 hover:text-black"
               >
                 {copied === "url" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </button>
             </div>
             <code className="text-xs bg-white p-2 rounded border block overflow-x-auto">
-              NEXT_PUBLIC_SUPABASE_URL = [Your Project URL]
+              SUPABASE_PROJECT_URL=https://your-project-id.supabase.co
             </code>
           </div>
 
@@ -65,14 +65,14 @@ export function SupabaseSetupGuide() {
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">Anon Key</span>
               <button
-                onClick={() => copyToClipboard("NEXT_PUBLIC_SUPABASE_ANON_KEY = [Your Anon Key]", "key")}
+                onClick={() => copyToClipboard("SUPABASE_ANON_KEY=your-anon-key", "key")}
                 className="text-gray-500 hover:text-black"
               >
                 {copied === "key" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </button>
             </div>
             <code className="text-xs bg-white p-2 rounded border block overflow-x-auto">
-              NEXT_PUBLIC_SUPABASE_ANON_KEY = [Your Anon Key]
+              SUPABASE_ANON_KEY=your-anon-key
             </code>
           </div>
         </div>
@@ -95,14 +95,16 @@ export function SupabaseSetupGuide() {
 
         <div>
           <h3 className="text-lg font-semibold mb-2">Step 4: Configure Environment Variables</h3>
-          <p className="mb-2">Add these environment variables to your project:</p>
+          <p className="mb-2">
+            Add these environment variables to your project (rename them to match Next.js requirements):
+          </p>
           <div className="bg-gray-50 p-3 rounded-md">
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">Environment Variables</span>
               <button
                 onClick={() =>
                   copyToClipboard(
-                    `NEXT_PUBLIC_SUPABASE_URL = [Your Project URL]\nNEXT_PUBLIC_SUPABASE_ANON_KEY = [Your Anon Key]`,
+                    `SUPABASE_PROJECT_URL=https://your-project-id.supabase.co\nSUPABASE_ANON_KEY=your-anon-key`,
                     "env",
                   )
                 }
@@ -112,7 +114,7 @@ export function SupabaseSetupGuide() {
               </button>
             </div>
             <code className="text-xs bg-white p-2 rounded border block overflow-x-auto whitespace-pre">
-              NEXT_PUBLIC_SUPABASE_URL = [Your Project URL] NEXT_PUBLIC_SUPABASE_ANON_KEY = [Your Anon Key]
+              SUPABASE_PROJECT_URL=https://your-project-id.supabase.co SUPABASE_ANON_KEY=your-anon-key
             </code>
           </div>
         </div>
