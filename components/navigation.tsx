@@ -2,16 +2,32 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, GraduationCap, BookOpen, Building, Brain, Info, Sparkles } from "lucide-react"
+import {
+  Menu,
+  X,
+  LogOut,
+  Edit,
+  User,
+  GraduationCap,
+  BookOpen,
+  Building,
+  Brain,
+  Info,
+  HelpCircle,
+  Sparkles,
+} from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useMobile } from "@/hooks/use-mobile"
 import { motion, AnimatePresence } from "framer-motion"
 import DoodleButton from "./ui-elements/doodle-button"
+import { useUser } from "@/context/user-context"
+import SignInModal from "./sign-in-modal"
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
   const isMobile = useMobile()
+  const { user, logout } = useUser()
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -37,6 +53,7 @@ export default function Navigation() {
   const mainNavItems = [
     { name: "How It Works", href: "/how-it-works", icon: Sparkles },
     { name: "About", href: "/about", icon: Info },
+    { name: "Q&A", href: "/query", icon: HelpCircle },
   ]
 
   // Mobile menu items (flat structure)
@@ -103,6 +120,67 @@ export default function Navigation() {
             </div>
           </div>
 
+          {/* Auth Buttons - Fixed alignment and consistent doodle style */}
+          <div className="hidden md:flex md:items-center md:space-x-3 flex-shrink-0">
+            {user ? (
+              <div className="flex items-center space-x-4">
+                {user.role === "admin" && (
+                  <Link href="/updates">
+                    <DoodleButton size="sm" variant="primary">
+                      <Edit className="h-4 w-4 mr-1" />
+                      Updates
+                    </DoodleButton>
+                  </Link>
+                )}
+
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden mr-2 border-2 border-gray-300">
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar || "/placeholder.svg"}
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{user.name}</span>
+                    <button
+                      onClick={logout}
+                      className="text-xs text-gray-500 hover:text-black text-left flex items-center"
+                    >
+                      <LogOut className="h-3 w-3 mr-1" />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <SignInModal
+                  trigger={
+                    <DoodleButton size="sm" variant="outline" className="w-28 font-semibold">
+                      <User className="h-4 w-4 mr-1" />
+                      Sign In
+                    </DoodleButton>
+                  }
+                />
+                <SignInModal
+                  trigger={
+                    <DoodleButton size="sm" variant="primary" className="w-36 whitespace-nowrap">
+                      Register Now
+                    </DoodleButton>
+                  }
+                  isRegister={true}
+                />
+              </>
+            )}
+          </div>
+
           {/* Mobile menu button */}
           <div className="md:hidden">
             <button
@@ -164,6 +242,67 @@ export default function Navigation() {
                     ))}
                   </div>
                 </div>
+
+                {user && user.role === "admin" && (
+                  <div>
+                    <Link href="/updates" onClick={() => setIsMenuOpen(false)}>
+                      <DoodleButton variant="primary" className="w-full">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Updates
+                      </DoodleButton>
+                    </Link>
+                  </div>
+                )}
+
+                {user ? (
+                  <div className="pt-2 border-t border-gray-200 mt-2">
+                    <div className="flex items-center px-3 py-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden mr-2 border-2 border-gray-300">
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar || "/placeholder.svg"}
+                            alt={user.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{user.name}</span>
+                        <span className="text-xs text-gray-500">{user.role}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={logout}
+                      className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                ) : (
+                  <div className="pt-2 grid grid-cols-2 gap-3">
+                    <SignInModal
+                      trigger={
+                        <DoodleButton variant="outline" className="w-full flex items-center justify-center" size="sm">
+                          <User className="h-4 w-4 mr-2" />
+                          Sign In
+                        </DoodleButton>
+                      }
+                    />
+                    <SignInModal
+                      trigger={
+                        <DoodleButton variant="primary" className="w-full whitespace-nowrap" size="sm">
+                          Register Now
+                        </DoodleButton>
+                      }
+                      isRegister={true}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

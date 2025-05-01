@@ -6,6 +6,7 @@ import { ArrowLeft, BarChart, Users, Lightbulb, Building, Home } from "lucide-re
 import DoodleBackground from "@/components/ui-elements/doodle-background"
 import DoodleButton from "@/components/ui-elements/doodle-button"
 import DoodleCard from "@/components/ui-elements/doodle-card"
+import SignInModal from "@/components/sign-in-modal"
 import { useEffect } from "react" // Add this import
 
 export default function ForUniversitiesPage() {
@@ -50,9 +51,7 @@ export default function ForUniversitiesPage() {
                 academic offerings, and student satisfaction.
               </p>
 
-              <Link href="/how-it-works">
-                <DoodleButton size="lg">Partner With Us</DoodleButton>
-              </Link>
+              <SignInModal trigger={<DoodleButton size="lg">Partner With Us</DoodleButton>} />
             </motion.div>
 
             <motion.div
@@ -423,11 +422,13 @@ export default function ForUniversitiesPage() {
             experiences and improve outcomes.
           </p>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
-            <Link href="/how-it-works">
-              <DoodleButton size="lg" className="px-8 py-6 text-lg">
-                Partner With Us
-              </DoodleButton>
-            </Link>
+            <SignInModal
+              trigger={
+                <DoodleButton size="lg" className="px-8 py-6 text-lg">
+                  Partner With Us
+                </DoodleButton>
+              }
+            />
           </motion.div>
         </motion.div>
       </DoodleBackground>

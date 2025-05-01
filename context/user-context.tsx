@@ -1,8 +1,17 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
+import {
+  type User as FirebaseUser,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  onAuthStateChanged,
+} from "firebase/auth"
+import { doc, setDoc, getDoc } from "firebase/firestore"
+import { auth, db } from "@/lib/firebase"
 
 // User type for our application
 export interface User {
@@ -25,15 +34,26 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
-// Helper function to convert Supabase user to our User type
-const mapSupabaseUser = (supabaseUser: SupabaseUser): User => {
+// Helper function to convert Firebase user to our User type
+const mapFirebaseUser = async (firebaseUser: FirebaseUser): Promise<User> => {
+  // Try to get additional user data from Firestore
+  let userData: any = {}
+  try {
+    const userDoc = await getDoc(doc(db, "profiles", firebaseUser.uid))
+    if (userDoc.exists()) {
+      userData = userDoc.data()
+    }
+  } catch (error) {
+    console.error("Error fetching user profile:", error)
+  }
+
   return {
-    id: supabaseUser.id,
-    email: supabaseUser.email || "",
-    name: supabaseUser.user_metadata?.name || supabaseUser.email?.split("@")[0] || "User",
-    role: (supabaseUser.app_metadata?.role as any) || "student",
-    avatar: supabaseUser.user_metadata?.avatar_url,
-    dob: supabaseUser.user_metadata?.dob,
+    id: firebaseUser.uid,
+    email: firebaseUser.email || "",
+    name: userData?.name || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+    role: userData?.role || "student",
+    avatar: userData?.avatar_url || firebaseUser.photoURL || undefined,
+    dob: userData?.dob || undefined,
   }
 }
 
@@ -43,72 +63,48 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Check for existing user session on mount
   useEffect(() => {
-    const checkUserSession = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setIsLoading(true)
       try {
-        setIsLoading(true)
-
-        // Get the current session
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        if (session?.user) {
-          const mappedUser = mapSupabaseUser(session.user)
+        if (firebaseUser) {
+          const mappedUser = await mapFirebaseUser(firebaseUser)
           setUser(mappedUser)
+        } else {
+          setUser(null)
         }
       } catch (error) {
-        console.error("Error checking session:", error)
+        console.error("Error processing auth state change:", error)
+        setUser(null)
       } finally {
         setIsLoading(false)
-      }
-    }
-
-    checkUserSession()
-
-    // Set up auth state change listener
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const mappedUser = mapSupabaseUser(session.user)
-        setUser(mappedUser)
-      } else if (event === "SIGNED_OUT") {
-        setUser(null)
       }
     })
 
     // Clean up subscription
-    return () => {
-      subscription.unsubscribe()
-    }
+    return () => unsubscribe()
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      console.log("Attempting login for:", email)
 
-      if (error) {
-        console.error("Login error:", error.message)
+      if (!email || !password) {
+        console.error("Login error: Email or password is empty")
         return false
       }
 
-      if (data.user) {
-        const mappedUser = mapSupabaseUser(data.user)
-        setUser(mappedUser)
-        return true
-      }
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      console.log("Login successful for:", email)
 
-      return false
+      const mappedUser = await mapFirebaseUser(userCredential.user)
+      setUser(mappedUser)
+      return true
     } catch (error) {
       console.error("Login error:", error)
       return false
     }
   }
 
-  // Extremely simplified registration function
   const register = async (
     email: string,
     password: string,
@@ -117,61 +113,63 @@ export function UserProvider({ children }: { children: ReactNode }) {
     avatar?: string | null,
   ): Promise<boolean> => {
     try {
-      console.log("Starting basic registration for:", email)
+      console.log("Starting registration process for:", email, "with name:", name)
 
-      // Use the most basic signUp method with minimal options
-      const { data, error } = await supabase.auth.signUp({
+      if (!email || !password || !name) {
+        console.error("Registration error: Required fields missing")
+        return false
+      }
+
+      // Create the user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const firebaseUser = userCredential.user
+
+      console.log("User created successfully:", firebaseUser.uid)
+
+      // Store additional user data in Firestore
+      await setDoc(doc(db, "profiles", firebaseUser.uid), {
+        name,
         email,
-        password,
-        options: {
-          data: {
-            name,
-            dob,
-            avatar_url: avatar,
-          },
-        },
+        role: "student",
+        dob: dob || null,
+        avatar_url: avatar || null,
+        created_at: new Date().toISOString(),
       })
 
-      if (error) {
-        console.error("Registration error details:", error)
-        return false
-      }
-
-      if (!data.user) {
-        console.error("No user returned from signUp")
-        return false
-      }
-
-      console.log("User created successfully:", data.user.id)
-
       // Set the user in context
-      const mappedUser = mapSupabaseUser(data.user)
+      const mappedUser = await mapFirebaseUser(firebaseUser)
       setUser(mappedUser)
 
       return true
     } catch (error) {
-      console.error("Unexpected registration error:", error)
+      console.error("Registration error:", error)
       return false
     }
   }
 
   const handleGoogleLogin = async (): Promise<boolean> => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
+      const provider = new GoogleAuthProvider()
+      const userCredential = await signInWithPopup(auth, provider)
+      const firebaseUser = userCredential.user
 
-      if (error) {
-        console.error("Google login error:", error.message)
-        return false
+      // Check if this is a new user
+      const userDoc = await getDoc(doc(db, "profiles", firebaseUser.uid))
+
+      if (!userDoc.exists()) {
+        // Store additional user data in Firestore for new users
+        await setDoc(doc(db, "profiles", firebaseUser.uid), {
+          name: firebaseUser.displayName,
+          email: firebaseUser.email,
+          role: "student",
+          avatar_url: firebaseUser.photoURL,
+          created_at: new Date().toISOString(),
+        })
       }
 
-      // This will redirect the user to Google, so we won't actually return true here
-      // The auth state change listener will handle setting the user when they return
-      return !!data
+      const mappedUser = await mapFirebaseUser(firebaseUser)
+      setUser(mappedUser)
+      return true
     } catch (error) {
       console.error("Google login error:", error)
       return false
@@ -180,7 +178,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut()
+      await signOut(auth)
       setUser(null)
     } catch (error) {
       console.error("Logout error:", error)

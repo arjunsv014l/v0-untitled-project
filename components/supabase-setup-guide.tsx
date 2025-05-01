@@ -50,14 +50,14 @@ export function SupabaseSetupGuide() {
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">Project URL</span>
               <button
-                onClick={() => copyToClipboard("URL: [Your Supabase Project URL]", "url")}
+                onClick={() => copyToClipboard("NEXT_PUBLIC_SUPABASE_URL = [Your Project URL]", "url")}
                 className="text-gray-500 hover:text-black"
               >
                 {copied === "url" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </button>
             </div>
             <code className="text-xs bg-white p-2 rounded border block overflow-x-auto">
-              URL: [Your Supabase Project URL]
+              NEXT_PUBLIC_SUPABASE_URL = [Your Project URL]
             </code>
           </div>
 
@@ -65,14 +65,14 @@ export function SupabaseSetupGuide() {
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">Anon Key</span>
               <button
-                onClick={() => copyToClipboard("ANON KEY: [Your Supabase Anon Key]", "key")}
+                onClick={() => copyToClipboard("NEXT_PUBLIC_SUPABASE_ANON_KEY = [Your Anon Key]", "key")}
                 className="text-gray-500 hover:text-black"
               >
                 {copied === "key" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </button>
             </div>
             <code className="text-xs bg-white p-2 rounded border block overflow-x-auto">
-              ANON KEY: [Your Supabase Anon Key]
+              NEXT_PUBLIC_SUPABASE_ANON_KEY = [Your Anon Key]
             </code>
           </div>
         </div>
@@ -95,14 +95,14 @@ export function SupabaseSetupGuide() {
 
         <div>
           <h3 className="text-lg font-semibold mb-2">Step 4: Configure Environment Variables</h3>
-          <p className="mb-2">Add the URL and Anon Key as environment variables to your project.</p>
+          <p className="mb-2">Add these environment variables to your project:</p>
           <div className="bg-gray-50 p-3 rounded-md">
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">Environment Variables</span>
               <button
                 onClick={() =>
                   copyToClipboard(
-                    `# Add your Supabase URL and Anon Key here\n# URL: [Your Supabase Project URL]\n# ANON KEY: [Your Supabase Anon Key]`,
+                    `NEXT_PUBLIC_SUPABASE_URL = [Your Project URL]\nNEXT_PUBLIC_SUPABASE_ANON_KEY = [Your Anon Key]`,
                     "env",
                   )
                 }
@@ -112,8 +112,7 @@ export function SupabaseSetupGuide() {
               </button>
             </div>
             <code className="text-xs bg-white p-2 rounded border block overflow-x-auto whitespace-pre">
-              # Add your Supabase URL and Anon Key here # URL: [Your Supabase Project URL] # ANON KEY: [Your Supabase
-              Anon Key]
+              NEXT_PUBLIC_SUPABASE_URL = [Your Project URL] NEXT_PUBLIC_SUPABASE_ANON_KEY = [Your Anon Key]
             </code>
           </div>
         </div>
