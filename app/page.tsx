@@ -9,9 +9,6 @@ import Link from "next/link"
 // Import the LaunchingSoon component
 import LaunchingSoon from "@/components/launching-soon"
 
-// Import the SocialCommunity component
-import SocialCommunity from "@/components/social-community"
-
 // Add these imports at the top
 import { Star, Sparkles, Zap, BookOpen, GraduationCap, Building, Brain } from "lucide-react"
 
@@ -38,31 +35,7 @@ export default function Home() {
     <main className="min-h-screen bg-white">
       <Hero />
 
-      {/* Introduction Section */}
-      <section className="py-20 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <div className="inline-flex items-center border-2 border-black px-4 py-2 rounded-full mb-4">
-            <span className="font-medium">Tailored For Everyone</span>
-          </div>
-
-          <h2 className="text-3xl md:text-4xl font-bold text-black mb-6">
-            Designed for Everyone in the Education Ecosystem
-          </h2>
-
-          <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-            Whether you're a freshman, current student, university administrator, or AI company, Dreamclerk provides
-            value through structured student insights.
-          </p>
-        </motion.div>
-      </section>
-
-      {/* How It Works Section - Moved to appear BEFORE the For Freshers section */}
+      {/* How It Works Section - Moved to appear after Hero and before For Freshers */}
       <HowItWorks />
 
       {/* For Freshers Section */}
@@ -232,20 +205,9 @@ export default function Home() {
                 ))}
               </ul>
 
-              <DoodleButton className="mt-4 w-full text-center">
-                <Link
-                  href="/for-freshers"
-                  className="block w-full"
-                  onClick={() => {
-                    // Only save scroll position if user has scrolled down
-                    if (window.scrollY > 100) {
-                      localStorage.setItem("landingPageScrollPosition", window.scrollY.toString())
-                    }
-                  }}
-                >
-                  Learn More
-                </Link>
-              </DoodleButton>
+              <Link href="/for-freshers">
+                <DoodleButton className="mt-4 w-full text-center">Learn More</DoodleButton>
+              </Link>
             </motion.div>
           </div>
         </div>
@@ -417,20 +379,9 @@ export default function Home() {
                 ))}
               </ul>
 
-              <DoodleButton className="mt-4 w-full text-center">
-                <Link
-                  href="/for-students"
-                  className="block w-full"
-                  onClick={() => {
-                    // Only save scroll position if user has scrolled down
-                    if (window.scrollY > 100) {
-                      localStorage.setItem("landingPageScrollPosition", window.scrollY.toString())
-                    }
-                  }}
-                >
-                  Learn More
-                </Link>
-              </DoodleButton>
+              <Link href="/for-students">
+                <DoodleButton className="mt-4 w-full text-center">Learn More</DoodleButton>
+              </Link>
             </motion.div>
           </div>
         </div>
@@ -582,20 +533,9 @@ export default function Home() {
                 ))}
               </ul>
 
-              <DoodleButton className="mt-4 w-full text-center">
-                <Link
-                  href="/for-universities"
-                  className="block w-full"
-                  onClick={() => {
-                    // Only save scroll position if user has scrolled down
-                    if (window.scrollY > 100) {
-                      localStorage.setItem("landingPageScrollPosition", window.scrollY.toString())
-                    }
-                  }}
-                >
-                  Learn More
-                </Link>
-              </DoodleButton>
+              <Link href="/for-universities">
+                <DoodleButton className="mt-4 w-full text-center">Learn More</DoodleButton>
+              </Link>
             </motion.div>
           </div>
         </div>
@@ -741,16 +681,16 @@ export default function Home() {
                 For Companies
               </h2>
               <p className="text-lg text-gray-700 mb-6">
-                Businesses of all types can leverage authentic student data and engagement opportunities to improve
-                products, services, and marketing strategies.
+                Brands, agencies, and social companies gain access to high-quality, real-time student data that powers
+                innovative solutions and authentic engagement.
               </p>
 
               <ul className="space-y-4 mb-8">
                 {[
-                  "Connect with student influencers for authentic brand partnerships",
-                  "Access categorized data for AI training and market research",
-                  "Run campus ambassador programs with real student leaders",
-                  "Test products and campaigns with your target student demographic",
+                  "Access real-time categorized student data for targeted campaigns",
+                  "Understand emerging trends and preferences among Gen Z audiences",
+                  "Develop products and services informed by authentic student experiences",
+                  "Create meaningful connections with the next generation of consumers",
                 ].map((feature, i) => (
                   <motion.li
                     key={i}
@@ -781,30 +721,18 @@ export default function Home() {
                 ))}
               </ul>
 
-              <DoodleButton className="mt-4 w-full text-center">
-                <Link
-                  href="/for-companies"
-                  className="block w-full"
-                  onClick={() => {
-                    // Only save scroll position if user has scrolled down
-                    if (window.scrollY > 100) {
-                      localStorage.setItem("landingPageScrollPosition", window.scrollY.toString())
-                    }
-                  }}
-                >
-                  Learn More
-                </Link>
-              </DoodleButton>
+              <Link href="/for-companies">
+                <DoodleButton className="mt-4 w-full text-center">Learn More</DoodleButton>
+              </Link>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Add the Social Community section here */}
-      <SocialCommunity />
-
-      {/* LaunchingSoon section at the bottom */}
+      {/* Add LaunchingSoon section here where SocialCommunity was previously */}
       <LaunchingSoon />
+
+      {/* Remove this duplicate LaunchingSoon section */}
     </main>
   )
 }

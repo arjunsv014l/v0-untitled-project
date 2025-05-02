@@ -2,8 +2,8 @@ import type React from "react"
 import "./globals.css"
 import { Inter } from "next/font/google"
 import Navigation from "@/components/navigation"
-import SimpleFooter from "@/components/simple-footer"
 import { UserProvider } from "@/context/user-context"
+import Footer from "@/components/footer"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <UserProvider>
           <Navigation />
           <main className="pt-16">{children}</main>
-          <SimpleFooter />
+          <Footer />
         </UserProvider>
       </body>
     </html>

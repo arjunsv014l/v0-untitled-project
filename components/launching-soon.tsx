@@ -1,24 +1,56 @@
 "use client"
 
 import type React from "react"
-
 import { motion } from "framer-motion"
 import { useState } from "react"
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import DoodleBackground from "./ui-elements/doodle-background"
 import DoodleButton from "./ui-elements/doodle-button"
-import { ArrowRight, Mail, Star, Calendar, Sparkles } from "lucide-react"
+import { ArrowRight, Mail, Star, Calendar, Sparkles, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 
 export default function LaunchingSoon() {
   const [email, setEmail] = useState("")
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (email) {
-      // Here you would typically send the email to your backend
-      console.log("Email submitted:", email)
+
+    if (!email) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Check if email already exists
+      const preCustomersRef = collection(db, "pre-customers")
+      const q = query(preCustomersRef, where("email", "==", email))
+      const querySnapshot = await getDocs(q)
+
+      if (!querySnapshot.empty) {
+        setError("This email is already on our waitlist!")
+        setLoading(false)
+        return
+      }
+
+      // Add new pre-customer
+      await addDoc(preCustomersRef, {
+        email,
+        createdAt: serverTimestamp(),
+        source: "landing-page",
+      })
+
+      setSuccess("You've been added to our waitlist!")
       setSubmitted(true)
       setEmail("")
+    } catch (err) {
+      console.error("Error adding document: ", err)
+      setError("Something went wrong. Please try again later.")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -37,7 +69,7 @@ export default function LaunchingSoon() {
           repeatType: "reverse",
         }}
       >
-        <Star className="h-12 w-12 text-[#10B84A]" /> {/* Added text color for green */}
+        <Star className="h-12 w-12 text-[#10B84A]" />
       </motion.div>
 
       <motion.div
@@ -52,7 +84,7 @@ export default function LaunchingSoon() {
           repeatType: "reverse",
         }}
       >
-        <Calendar className="h-12 w-12 text-[#8B5CF6]" /> {/* Added text color for purple */}
+        <Calendar className="h-12 w-12 text-[#8B5CF6]" />
       </motion.div>
 
       <motion.div
@@ -67,7 +99,7 @@ export default function LaunchingSoon() {
           repeatType: "reverse",
         }}
       >
-        <Sparkles className="h-10 w-10 text-[#EC4899]" /> {/* Added text color for pink */}
+        <Sparkles className="h-10 w-10 text-[#EC4899]" />
       </motion.div>
 
       <motion.div
@@ -85,7 +117,7 @@ export default function LaunchingSoon() {
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
-            stroke="#10B84A" // Changed to green
+            stroke="#10B84A"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -151,11 +183,21 @@ export default function LaunchingSoon() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
-            <DoodleButton type="submit">
-              Notify Me
-              <ArrowRight className="ml-2 h-4 w-4" />
+            <DoodleButton type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  Notify Me
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </DoodleButton>
           </motion.form>
         ) : (
@@ -164,9 +206,21 @@ export default function LaunchingSoon() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white border-2 border-black p-4 rounded-lg max-w-md mx-auto"
           >
-            <Sparkles className="h-6 w-6 mx-auto mb-2" />
+            <CheckCircle className="h-6 w-6 mx-auto mb-2 text-[#10B84A]" />
             <p className="font-medium">Thank you for your interest!</p>
             <p className="text-gray-600 text-sm mt-1">We'll notify you when Dreamclerk launches.</p>
+          </motion.div>
+        )}
+
+        {/* Error message */}
+        {error && !submitted && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 text-red-500 flex items-center justify-center gap-2"
+          >
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
           </motion.div>
         )}
 
@@ -196,14 +250,14 @@ export default function LaunchingSoon() {
               >
                 <path
                   d={index === 0 ? "M10 30C20 10 80 10 90 30" : "M10 70C20 90 80 90 90 70"}
-                  stroke={index === 0 ? "#10B84A" : "#8B5CF6"} // Changed to green and purple
+                  stroke={index === 0 ? "#10B84A" : "#8B5CF6"}
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeDasharray="4 4"
                 />
                 <path
                   d={index === 0 ? "M10 70C20 90 80 90 90 70" : "M10 30C20 10 80 10 90 30"}
-                  stroke={index === 0 ? "#8B5CF6" : "#10B84A"} // Changed to purple and green
+                  stroke={index === 0 ? "#8B5CF6" : "#10B84A"}
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeDasharray="4 4"
