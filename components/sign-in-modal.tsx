@@ -21,10 +21,27 @@ export default function SignInModal({ trigger, isRegister = false }: SignInModal
   const [name, setName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const { login, register, loginWithGoogle } = useUser()
+  const { login, register, loginWithGoogle, isDevelopmentMode } = useUser()
   const router = useRouter()
   const [showTransition, setShowTransition] = useState(false)
   const [activeTab, setActiveTab] = useState(isRegister ? "register" : "login")
+
+  // Helper function to map Firebase error codes to user-friendly messages
+  const getErrorMessage = (errorCode: string) => {
+    const errorMessages: Record<string, string> = {
+      "auth/invalid-credential": "Invalid email or password. Please try again.",
+      "auth/user-not-found": "No account found with this email. Please register.",
+      "auth/wrong-password": "Incorrect password. Please try again.",
+      "auth/email-already-in-use": "This email is already registered. Please login instead.",
+      "auth/weak-password": "Password is too weak. Please use a stronger password.",
+      "auth/invalid-email": "Invalid email format. Please check your email.",
+      "auth/network-request-failed": "Network error. Please check your connection.",
+      "auth/too-many-requests": "Too many failed attempts. Please try again later.",
+      "auth/popup-closed-by-user": "Google sign-in was cancelled. Please try again.",
+    }
+
+    return errorMessages[errorCode] || "An error occurred. Please try again."
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,19 +50,20 @@ export default function SignInModal({ trigger, isRegister = false }: SignInModal
 
     try {
       console.log("[SignInModal] Attempting login with:", email)
-      const success = await login(email, password)
 
-      if (success) {
+      const result = await login(email, password)
+
+      if (result.success) {
         console.log("[SignInModal] Login successful, showing transition")
         setShowTransition(true)
       } else {
-        console.log("[SignInModal] Login failed")
-        setError("Invalid email or password")
+        console.log("[SignInModal] Login failed:", result.error)
+        setError(getErrorMessage(result.error || "unknown"))
         setIsLoading(false)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("[SignInModal] Login error:", err)
-      setError("An error occurred during login")
+      setError("An unexpected error occurred. Please try again.")
       setIsLoading(false)
     }
   }
@@ -61,21 +79,28 @@ export default function SignInModal({ trigger, isRegister = false }: SignInModal
       return
     }
 
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters")
+      setIsLoading(false)
+      return
+    }
+
     try {
       console.log("[SignInModal] Attempting registration with:", email)
-      const success = await register(email, password, name)
 
-      if (success) {
+      const result = await register(email, password, name)
+
+      if (result.success) {
         console.log("[SignInModal] Registration successful, showing transition")
         setShowTransition(true)
       } else {
-        console.log("[SignInModal] Registration failed")
-        setError("Registration failed. Please try again.")
+        console.log("[SignInModal] Registration failed:", result.error)
+        setError(getErrorMessage(result.error || "unknown"))
         setIsLoading(false)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("[SignInModal] Registration error:", err)
-      setError("An error occurred during registration")
+      setError("An unexpected error occurred. Please try again.")
       setIsLoading(false)
     }
   }
@@ -86,31 +111,31 @@ export default function SignInModal({ trigger, isRegister = false }: SignInModal
 
     try {
       console.log("[SignInModal] Attempting Google login")
-      const success = await loginWithGoogle()
 
-      if (success) {
+      const result = await loginWithGoogle()
+
+      if (result.success) {
         console.log("[SignInModal] Google login successful, showing transition")
         setShowTransition(true)
       } else {
-        console.log("[SignInModal] Google login failed")
-        setError("Google login failed. Please try again.")
+        console.log("[SignInModal] Google login failed:", result.error)
+        setError(getErrorMessage(result.error || "unknown"))
         setIsLoading(false)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("[SignInModal] Google login error:", err)
-      setError("An error occurred during Google login")
+      setError("An unexpected error occurred. Please try again.")
       setIsLoading(false)
     }
   }
 
-  const closeModal = () => {
-    setIsOpen(false)
-    setEmail("")
-    setPassword("")
-    setName("")
-    setError("")
-    setIsLoading(false)
-  }
+  // For development mode, show a hint
+  const devModeHint = isDevelopmentMode ? (
+    <div className="mt-2 text-xs text-gray-500 text-center">
+      <p>Development mode: Use any email and password</p>
+      <p>Example: test@example.com / password</p>
+    </div>
+  ) : null
 
   return (
     <>
@@ -171,6 +196,7 @@ export default function SignInModal({ trigger, isRegister = false }: SignInModal
                 </div>
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
+                {devModeHint}
 
                 <button
                   type="submit"
@@ -262,6 +288,7 @@ export default function SignInModal({ trigger, isRegister = false }: SignInModal
                 </div>
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
+                {devModeHint}
 
                 <button
                   type="submit"

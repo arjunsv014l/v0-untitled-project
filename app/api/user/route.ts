@@ -1,7 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { adminAuth, adminDb } from "@/lib/firebase-admin"
+import { adminAuth, adminDb, isFirebaseAdminInitialized } from "@/lib/firebase-admin"
+
+// Mock data for when Firebase Admin is not initialized
+const mockUserData = {
+  name: "Test User",
+  email: "test@example.com",
+  role: "user",
+  createdAt: new Date().toISOString(),
+}
 
 export async function POST(request: NextRequest) {
+  // Check if Firebase Admin is initialized
+  if (!isFirebaseAdminInitialized || !adminAuth || !adminDb) {
+    console.warn("Firebase Admin is not initialized. Using mock data.")
+    return NextResponse.json({ success: true, mock: true })
+  }
+
   try {
     // Get the authorization token
     const authHeader = request.headers.get("authorization")
@@ -26,11 +40,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error updating user:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
+  // Check if Firebase Admin is initialized
+  if (!isFirebaseAdminInitialized || !adminAuth || !adminDb) {
+    console.warn("Firebase Admin is not initialized. Using mock data.")
+    return NextResponse.json(mockUserData)
+  }
+
   try {
     // Get the authorization token
     const authHeader = request.headers.get("authorization")
@@ -55,6 +75,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(userDoc.data())
   } catch (error) {
     console.error("Error getting user:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 })
   }
 }

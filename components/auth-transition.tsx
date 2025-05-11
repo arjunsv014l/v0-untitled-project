@@ -34,6 +34,7 @@ export default function AuthTransition() {
       }
     }
 
+    // In development mode or if user exists, redirect to dashboard
     if (user) {
       console.log("[AuthTransition] User authenticated, starting redirect")
       redirectToDashboard()
