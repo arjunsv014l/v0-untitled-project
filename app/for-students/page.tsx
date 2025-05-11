@@ -6,6 +6,7 @@ import { ArrowLeft, DollarSign, BarChart, Shield, Zap, Home } from "lucide-react
 import DoodleBackground from "@/components/ui-elements/doodle-background"
 import DoodleButton from "@/components/ui-elements/doodle-button"
 import DoodleCard from "@/components/ui-elements/doodle-card"
+import SignInModal from "@/components/sign-in-modal"
 import { useEffect } from "react"
 
 export default function ForStudentsPage() {
@@ -127,9 +128,7 @@ export default function ForStudentsPage() {
                 informed decisions.
               </p>
 
-              <Link href="/how-it-works">
-                <DoodleButton size="lg">Start Earning Today</DoodleButton>
-              </Link>
+              <SignInModal trigger={<DoodleButton size="lg">Start Earning Today</DoodleButton>} />
             </motion.div>
           </div>
         </div>
@@ -433,11 +432,13 @@ export default function ForStudentsPage() {
             generations.
           </p>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
-            <Link href="/how-it-works">
-              <DoodleButton size="lg" className="px-8 py-6 text-lg">
-                Start Earning Today
-              </DoodleButton>
-            </Link>
+            <SignInModal
+              trigger={
+                <DoodleButton size="lg" className="px-8 py-6 text-lg">
+                  Start Earning Today
+                </DoodleButton>
+              }
+            />
           </motion.div>
         </motion.div>
       </DoodleBackground>

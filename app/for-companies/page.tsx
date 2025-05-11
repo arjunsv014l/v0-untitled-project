@@ -9,16 +9,17 @@ import {
   Zap,
   Brain,
   Home,
-  TrendingUp,
-  Target,
-  Users,
-  BarChart3,
-  LineChart,
-  PieChart,
+  UserPlus,
+  Star,
+  Sparkles,
+  Calendar,
+  Camera,
+  Search,
 } from "lucide-react"
 import DoodleBackground from "@/components/ui-elements/doodle-background"
 import DoodleButton from "@/components/ui-elements/doodle-button"
 import DoodleCard from "@/components/ui-elements/doodle-card"
+import SignInModal from "@/components/sign-in-modal"
 import { useEffect } from "react"
 
 export default function ForCompaniesPage() {
@@ -135,19 +136,19 @@ export default function ForCompaniesPage() {
               className="order-2 lg:order-1"
             >
               <div className="inline-flex items-center border-2 border-black px-4 py-2 rounded-full mb-6">
-                <span className="font-medium">For Brands & Agencies</span>
+                <span className="font-medium">For AI Companies</span>
               </div>
 
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">Real-Time Student Data for Authentic Engagement</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                Partner With Students for Better Data & Engagement
+              </h1>
 
               <p className="text-lg text-gray-700 mb-8">
-                Access structured, authentic student experiences to understand Gen Z, develop targeted campaigns, and
-                create products that resonate with the next generation of consumers.
+                Connect with authentic student experiences to enhance your products, services, and marketing strategies,
+                whether you're an AI company, social agency, or brand.
               </p>
 
-              <Link href="/how-it-works">
-                <DoodleButton size="lg">Coming Soon</DoodleButton>
-              </Link>
+              <SignInModal trigger={<DoodleButton size="lg">Partner With Us</DoodleButton>} />
             </motion.div>
           </div>
         </div>
@@ -165,8 +166,8 @@ export default function ForCompaniesPage() {
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Why Companies Choose Dreamclerk</h2>
             <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-              Access high-quality, structured student data that powers authentic engagement with Gen Z audiences and
-              drives innovation.
+              Access high-quality, structured student data and engagement opportunities that power the next generation
+              of products, services, and marketing campaigns.
             </p>
           </motion.div>
 
@@ -174,9 +175,21 @@ export default function ForCompaniesPage() {
             {[
               {
                 icon: Database,
-                title: "Real-Time Insights",
+                title: "AI Companies: Training Data",
                 description:
-                  "Access authentic, categorized student experiences that provide real-time insights into Gen Z preferences, behaviors, and trends.",
+                  "Access authentic, categorized student experiences that provide rich, contextual data for training AI models.",
+              },
+              {
+                icon: Zap,
+                title: "Social Agencies: Authentic Engagement",
+                description:
+                  "Connect with real student communities for genuine social campaigns and influencer partnerships.",
+              },
+              {
+                icon: Brain,
+                title: "Brands: Gen Z Insights",
+                description:
+                  "Gain deep understanding of student preferences, trends, and purchasing behaviors to inform product development.",
               },
               {
                 icon: Shield,
@@ -185,28 +198,16 @@ export default function ForCompaniesPage() {
                   "All data is ethically sourced with explicit consent and anonymized to protect privacy while maintaining utility.",
               },
               {
-                icon: Zap,
-                title: "Pre-Processed & Structured",
+                icon: Database,
+                title: "Continuous Data Flow",
                 description:
-                  "Save time with data that's already categorized, cleaned, and structured for immediate business application.",
+                  "Receive ongoing streams of fresh data to continuously improve your strategies and products.",
               },
               {
-                icon: Brain,
-                title: "Gen Z Expertise",
+                icon: Shield,
+                title: "Transparent Provenance",
                 description:
-                  "Gain deep understanding of student experiences across academics, social life, purchasing habits, and digital engagement.",
-              },
-              {
-                icon: TrendingUp,
-                title: "Trend Forecasting",
-                description:
-                  "Identify emerging trends before they go mainstream with continuous streams of fresh data from campus environments.",
-              },
-              {
-                icon: Target,
-                title: "Targeted Engagement",
-                description:
-                  "Create more effective campaigns and products with insights directly from your target demographic.",
+                  "Know exactly where your data comes from with complete transparency about collection methods.",
               },
             ].map((benefit, index) => (
               <motion.div
@@ -231,7 +232,7 @@ export default function ForCompaniesPage() {
         </div>
       </section>
 
-      {/* Company Types Section */}
+      {/* Use Cases Section */}
       <section className="py-20 px-4 md:px-6 lg:px-8 bg-gray-50 border-t-2 border-b-2 border-black">
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -241,55 +242,60 @@ export default function ForCompaniesPage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">How Different Companies Benefit</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Partnership Opportunities</h2>
             <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-              Discover how different types of companies are leveraging Dreamclerk data to create innovative solutions
-              and authentic engagement.
+              Discover how different types of companies are leveraging Dreamclerk to create innovative solutions and
+              effective campaigns.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {[
               {
-                title: "For Brands",
+                title: "AI & EdTech Companies",
                 description:
-                  "Connect with Gen Z through authentic insights that drive product development and marketing strategies.",
+                  "Train AI models that understand student learning patterns and preferences to deliver truly personalized educational experiences.",
                 applications: [
-                  "Develop products that resonate with student needs and preferences",
-                  "Create marketing campaigns that speak authentically to Gen Z",
-                  "Identify emerging trends before they go mainstream",
-                  "Understand purchasing behaviors and decision factors",
-                  "Test concepts and messaging with real student feedback",
+                  "Adaptive learning algorithms that adjust to individual student needs",
+                  "Content recommendation systems based on real student preferences",
+                  "Personalized study plans optimized for different learning styles",
+                  "Early intervention systems for academic challenges",
                 ],
-                icon: Users,
               },
               {
-                title: "For Agencies",
+                title: "Social Media Agencies",
                 description:
-                  "Deliver exceptional results for clients targeting the student demographic with data-driven strategies.",
+                  "Create authentic campaigns that resonate with Gen Z through direct access to student influencers and communities.",
                 applications: [
-                  "Develop campaigns based on real student insights rather than assumptions",
-                  "Create content that authentically resonates with Gen Z audiences",
-                  "Provide clients with unique insights into the student market",
-                  "Measure campaign effectiveness with real student feedback",
-                  "Stay ahead of trends with continuous data streams",
+                  "Connect with student micro-influencers across multiple campuses",
+                  "Develop campus ambassador programs with real community leaders",
+                  "Test campaign concepts with real student audiences",
+                  "Access authentic student-generated content for your campaigns",
                 ],
-                icon: BarChart3,
               },
               {
-                title: "For Social Companies",
+                title: "Consumer Brands & Retail",
                 description:
-                  "Build platforms and features that genuinely engage student users and meet their evolving needs.",
+                  "Understand the preferences and behaviors of the college student demographic to create products and experiences they love.",
                 applications: [
-                  "Design features that address actual student communication patterns",
-                  "Understand content preferences and engagement drivers",
-                  "Identify pain points in existing social platforms",
-                  "Develop community-building tools based on campus social dynamics",
-                  "Create safer, more engaging digital environments",
+                  "Product testing and feedback from your target student demographic",
+                  "Trend identification before they hit mainstream markets",
+                  "Campus-specific marketing opportunities and events",
+                  "Student loyalty and ambassador programs for sustained engagement",
                 ],
-                icon: LineChart,
               },
-            ].map((companyType, index) => (
+              {
+                title: "Market Research & Analytics Firms",
+                description:
+                  "Access structured data about student behaviors, preferences, and trends to enhance your research capabilities.",
+                applications: [
+                  "Longitudinal studies of student behavior and preferences",
+                  "Cross-campus comparative research on demographic trends",
+                  "Real-time sentiment analysis on topics relevant to Gen Z",
+                  "Custom research panels of students across different institutions",
+                ],
+              },
+            ].map((useCase, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
@@ -297,19 +303,13 @@ export default function ForCompaniesPage() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
               >
-                <DoodleCard
-                  className="h-full p-8"
-                  doodle={index % 3 === 0 ? "stars" : index % 3 === 1 ? "circles" : "lines"}
-                >
-                  <div className="bg-white border-2 border-black p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
-                    <companyType.icon className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4">{companyType.title}</h3>
-                  <p className="text-gray-700 mb-6">{companyType.description}</p>
+                <DoodleCard className="h-full p-8" doodle={index % 2 === 0 ? "stars" : "circles"}>
+                  <h3 className="text-2xl font-bold mb-4">{useCase.title}</h3>
+                  <p className="text-gray-700 mb-6">{useCase.description}</p>
 
-                  <p className="font-bold text-gray-700 mb-2">Applications:</p>
+                  <p className="font-bold text-gray-700 mb-2">Opportunities:</p>
                   <ul className="space-y-2">
-                    {companyType.applications.map((application, i) => (
+                    {useCase.applications.map((application, i) => (
                       <li key={i} className="flex items-start">
                         <svg
                           width="20"
@@ -348,73 +348,73 @@ export default function ForCompaniesPage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Available Data Categories</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Available Data & Engagement Categories</h2>
             <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-              Dreamclerk provides structured student data across multiple categories, all ethically sourced and
-              anonymized.
+              Dreamclerk provides structured student data and engagement opportunities across multiple categories, all
+              ethically sourced and managed.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                title: "Consumer Behavior",
+                title: "Academic Experiences",
                 items: [
-                  "Purchasing preferences and patterns",
-                  "Brand perception and loyalty factors",
-                  "Price sensitivity and value assessment",
-                  "Influence factors in buying decisions",
-                  "Sustainability and ethical considerations",
+                  "Course feedback and experiences",
+                  "Study habits and preferences",
+                  "Academic challenges and solutions",
+                  "Professor and teaching style evaluations",
+                  "Learning resource utilization",
                 ],
               },
               {
-                title: "Digital Engagement",
+                title: "Campus Life",
                 items: [
-                  "Platform preferences and usage patterns",
-                  "Content consumption habits",
-                  "Social media engagement behaviors",
-                  "Digital communication preferences",
-                  "Technology adoption and trends",
+                  "Housing and dining experiences",
+                  "Extracurricular activities",
+                  "Campus facility usage patterns",
+                  "Social events and community building",
+                  "Transportation and accessibility",
                 ],
               },
               {
-                title: "Lifestyle & Interests",
+                title: "Student Wellbeing",
                 items: [
-                  "Entertainment and leisure activities",
-                  "Food and dining preferences",
-                  "Fashion and personal style trends",
-                  "Travel and experience priorities",
-                  "Health and wellness approaches",
+                  "Stress management strategies",
+                  "Work-life balance approaches",
+                  "Mental health challenges and resources",
+                  "Physical health and wellness activities",
+                  "Support system utilization",
                 ],
               },
               {
-                title: "Values & Motivations",
+                title: "Career Development",
                 items: [
-                  "Social causes and activism interests",
-                  "Career aspirations and motivations",
-                  "Community and belonging needs",
-                  "Personal development priorities",
-                  "Financial goals and concerns",
+                  "Internship and job search experiences",
+                  "Skill development activities",
+                  "Networking and mentorship",
+                  "Career planning and decision-making",
+                  "Industry-specific preparation",
                 ],
               },
               {
-                title: "Campus Trends",
+                title: "Financial Management",
                 items: [
-                  "Emerging social activities and events",
-                  "Popular campus services and amenities",
-                  "Student organization participation",
-                  "On-campus vs. off-campus preferences",
-                  "Transportation and mobility patterns",
+                  "Tuition and financial aid experiences",
+                  "Budgeting and expense management",
+                  "Part-time work and income sources",
+                  "Financial literacy and education",
+                  "Cost-saving strategies",
                 ],
               },
               {
-                title: "Media & Content",
+                title: "Technology Usage",
                 items: [
-                  "Content format preferences (video, audio, text)",
-                  "Influencer impact and credibility factors",
-                  "Entertainment consumption patterns",
-                  "News and information sources",
-                  "Content creation and sharing behaviors",
+                  "Educational technology preferences",
+                  "Digital learning tool effectiveness",
+                  "Online vs. in-person learning experiences",
+                  "Communication platform utilization",
+                  "Technology accessibility challenges",
                 ],
               },
             ].map((category, index) => (
@@ -457,8 +457,8 @@ export default function ForCompaniesPage() {
         </div>
       </section>
 
-      {/* Real-Time Data Advantages Section */}
-      <section className="py-20 px-4 md:px-6 lg:px-8 bg-gray-50 border-t-2 border-black">
+      {/* Brand Partnership Examples Section */}
+      <section className="py-20 px-4 md:px-6 lg:px-8 border-t-2 border-black">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -467,208 +467,52 @@ export default function ForCompaniesPage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">The Real-Time Data Advantage</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Brand Partnership Examples</h2>
             <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-              Discover how Dreamclerk's real-time student data provides a competitive edge in understanding and engaging
-              with Gen Z.
+              See how brands are already working with Dreamclerk to connect with the student demographic in authentic
+              ways.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <DoodleCard className="h-full p-8">
-                <h3 className="text-2xl font-bold mb-6">Traditional Market Research</h3>
-                <ul className="space-y-4">
-                  {[
-                    "Static snapshots that quickly become outdated",
-                    "Relies on what people say they do, not what they actually do",
-                    "Often based on small sample sizes with limited diversity",
-                    "Expensive and time-consuming to conduct regularly",
-                    "Typically focuses on broad demographics rather than specific contexts",
-                    "Results often influenced by research environment and framing",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start">
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="mr-2 mt-1 flex-shrink-0 text-red-500"
-                      >
-                        <path
-                          d="M18 6L6 18M6 6L18 18"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span className="text-gray-700">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </DoodleCard>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <DoodleCard className="h-full p-8" doodle="stars">
-                <h3 className="text-2xl font-bold mb-6">Dreamclerk Real-Time Data</h3>
-                <ul className="space-y-4">
-                  {[
-                    "Continuous stream of fresh insights that evolve with trends",
-                    "Based on actual behaviors and experiences, not just stated preferences",
-                    "Large, diverse sample of students across different institutions",
-                    "Cost-effective access to ongoing data without repeated research costs",
-                    "Contextual insights specific to campus environments and student life",
-                    "Natural data collection in authentic environments",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start">
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="mr-2 mt-1 flex-shrink-0 text-green-500"
-                      >
-                        <path
-                          d="M5 12L9 16L19 6"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span className="text-gray-700">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </DoodleCard>
-            </motion.div>
-          </div>
-
-          <div className="bg-white border-2 border-black rounded-lg p-8">
-            <h3 className="text-2xl font-bold mb-4 text-center">Real-Time Data in Action</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  title: "Trend Identification",
-                  description:
-                    "Identify emerging trends 3-6 months before they appear in traditional market research, giving you a first-mover advantage.",
-                  icon: TrendingUp,
-                },
-                {
-                  title: "Campaign Optimization",
-                  description:
-                    "Adjust messaging and targeting in real-time based on actual student responses and engagement patterns.",
-                  icon: Target,
-                },
-                {
-                  title: "Product Development",
-                  description:
-                    "Develop products and features informed by authentic student needs and preferences as they evolve.",
-                  icon: PieChart,
-                },
-              ].map((example, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="flex flex-col items-center text-center"
-                >
-                  <div className="bg-gray-50 border-2 border-black p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                    <example.icon className="h-8 w-8" />
-                  </div>
-                  <h4 className="text-xl font-bold mb-2">{example.title}</h4>
-                  <p className="text-gray-700">{example.description}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Case Studies Section */}
-      <section className="py-20 px-4 md:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">How Companies Use Our Data</h2>
-            <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-              Explore how different companies are leveraging Dreamclerk's real-time student data to drive innovation and
-              engagement.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                title: "Fashion Brand Discovers Campus Micro-Trends",
+                title: "Campus Ambassador Programs",
                 description:
-                  "A leading fashion brand used Dreamclerk data to identify emerging style preferences among college students months before they appeared on social media. This allowed them to adjust their upcoming collection and marketing strategy, resulting in a 32% increase in Gen Z engagement.",
-                results: [
-                  "Identified 5 micro-trends before mainstream visibility",
-                  "Adjusted product development for upcoming season",
-                  "Created targeted campus ambassador program",
-                  "32% increase in Gen Z engagement metrics",
-                  "18% higher conversion rate on campus-focused campaigns",
-                ],
+                  "Recruit and manage student ambassadors who represent your brand on campus with authentic peer-to-peer marketing.",
+                icon: UserPlus,
               },
               {
-                title: "Food Delivery App Optimizes Campus Experience",
+                title: "Student Influencer Campaigns",
                 description:
-                  "A food delivery platform leveraged Dreamclerk's real-time data to understand student dining patterns and pain points. By redesigning their app experience specifically for campus users, they saw a 45% increase in student orders and significantly improved retention.",
-                results: [
-                  "Identified key ordering times and group ordering patterns",
-                  "Developed campus-specific features based on student feedback",
-                  "Created targeted promotions aligned with student schedules",
-                  "45% increase in orders from campus locations",
-                  "28% improvement in student user retention",
-                ],
+                  "Connect with our network of student content creators who can showcase your products to their engaged followers.",
+                icon: Star,
               },
               {
-                title: "Marketing Agency Creates Authentic Gen Z Campaign",
+                title: "Focus Groups & Product Testing",
                 description:
-                  "An agency working with a tech client used Dreamclerk data to develop a campus marketing campaign that authentically resonated with students. By understanding actual student language, concerns, and digital behaviors, they created content that achieved 3x the engagement of previous campaigns.",
-                results: [
-                  "Developed authentic messaging based on actual student conversations",
-                  "Identified key digital touchpoints for campaign distribution",
-                  "Created content formats aligned with student preferences",
-                  "3x higher engagement than previous campaigns",
-                  "40% increase in positive brand sentiment among Gen Z",
-                ],
+                  "Get real feedback on your products and services from demographically diverse student groups.",
+                icon: Sparkles,
               },
               {
-                title: "Social Platform Enhances Student Features",
+                title: "Campus Events & Activation",
                 description:
-                  "A social media platform used Dreamclerk insights to develop new features specifically addressing student communication needs. By understanding how students actually use social platforms for academic and social coordination, they created tools that drove a 27% increase in daily active users among college students.",
-                results: [
-                  "Identified unmet communication needs in campus environments",
-                  "Developed new features addressing student-specific use cases",
-                  "Created campus-focused onboarding experience",
-                  "27% increase in daily active users among college demographic",
-                  "22% higher time spent in app by student users",
-                ],
+                  "Create memorable on-campus experiences that generate buzz and foster genuine connections with students.",
+                icon: Calendar,
               },
-            ].map((caseStudy, index) => (
+              {
+                title: "Student Content Creation",
+                description:
+                  "Commission authentic student-created content that resonates with Gen Z and enhances your marketing efforts.",
+                icon: Camera,
+              },
+              {
+                title: "Custom Research Studies",
+                description:
+                  "Conduct tailored research on specific questions relevant to your brand's strategy and product development.",
+                icon: Search,
+              },
+            ].map((example, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
@@ -676,34 +520,14 @@ export default function ForCompaniesPage() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
               >
-                <DoodleCard className="h-full p-8" doodle={index % 2 === 0 ? "stars" : "circles"}>
-                  <h3 className="text-2xl font-bold mb-4">{caseStudy.title}</h3>
-                  <p className="text-gray-700 mb-6">{caseStudy.description}</p>
-
-                  <p className="font-bold text-gray-700 mb-2">Results:</p>
-                  <ul className="space-y-2">
-                    {caseStudy.results.map((result, i) => (
-                      <li key={i} className="flex items-start">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="mr-2 mt-1 flex-shrink-0"
-                        >
-                          <path
-                            d="M5 12L9 16L19 6"
-                            stroke="black"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        <span className="text-gray-700">{result}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <DoodleCard className="h-full p-6">
+                  <div className="flex flex-col items-center text-center h-full">
+                    <div className="bg-white border-2 border-black p-3 rounded-lg w-12 h-12 flex items-center justify-center mb-4">
+                      <example.icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-3">{example.title}</h3>
+                    <p className="text-gray-700">{example.description}</p>
+                  </div>
                 </DoodleCard>
               </motion.div>
             ))}
@@ -723,7 +547,7 @@ export default function ForCompaniesPage() {
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Frequently Asked Questions</h2>
             <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-              Get answers to common questions about Dreamclerk's data for companies.
+              Get answers to common questions about Dreamclerk's data for AI companies.
             </p>
           </motion.div>
 
@@ -732,7 +556,7 @@ export default function ForCompaniesPage() {
               {
                 question: "How is the data collected?",
                 answer:
-                  "Data is collected through our platform where students voluntarily share their daily college experiences. All students explicitly consent to having their anonymized data used for business insights and research purposes.",
+                  "Data is collected through our platform where students voluntarily share their daily college experiences. All students explicitly consent to having their anonymized data used for AI training purposes.",
               },
               {
                 question: "Is the data GDPR and CCPA compliant?",
@@ -747,12 +571,12 @@ export default function ForCompaniesPage() {
               {
                 question: "Can we request custom data sets?",
                 answer:
-                  "Yes, we can create custom data sets focused on specific categories, demographics, or topics based on your business needs.",
+                  "Yes, we can create custom data sets focused on specific categories, demographics, or topics based on your AI development needs.",
               },
               {
                 question: "How often is new data available?",
                 answer:
-                  "We provide continuous data streams with new student experiences added daily. Partners can access updates on a schedule that works for their business cycles.",
+                  "We provide continuous data streams with new student experiences added daily. Partners can access updates on a schedule that works for their development cycles.",
               },
               {
                 question: "How do you ensure data quality?",
@@ -786,19 +610,19 @@ export default function ForCompaniesPage() {
           viewport={{ once: true }}
           className="max-w-7xl mx-auto text-center"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-black mb-6">
-            Ready to Understand Gen Z Like Never Before?
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-black mb-6">Ready to Connect with the Student Market?</h2>
           <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-3xl mx-auto">
-            Join forward-thinking companies that are using Dreamclerk's structured student data to create authentic
-            connections with the next generation.
+            Join forward-thinking companies that are using Dreamclerk's student data and engagement platform to create
+            meaningful connections with the next generation.
           </p>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
-            <Link href="/how-it-works">
-              <DoodleButton size="lg" className="px-8 py-6 text-lg">
-                Coming Soon
-              </DoodleButton>
-            </Link>
+            <SignInModal
+              trigger={
+                <DoodleButton size="lg" className="px-8 py-6 text-lg">
+                  Partner With Us
+                </DoodleButton>
+              }
+            />
           </motion.div>
         </motion.div>
       </DoodleBackground>
