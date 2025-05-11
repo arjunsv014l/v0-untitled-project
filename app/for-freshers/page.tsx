@@ -6,8 +6,7 @@ import { ArrowLeft, CheckCircle, BookOpen, Users, Award, Home } from "lucide-rea
 import DoodleBackground from "@/components/ui-elements/doodle-background"
 import DoodleButton from "@/components/ui-elements/doodle-button"
 import DoodleCard from "@/components/ui-elements/doodle-card"
-import SignInModal from "@/components/sign-in-modal"
-import { useEffect } from "react" // Add this import
+import { useEffect } from "react"
 
 export default function ForFreshersPage() {
   // Add this useEffect to scroll to top when the page loads
@@ -51,7 +50,7 @@ export default function ForFreshersPage() {
                 with real insights from students who've been there.
               </p>
 
-              <SignInModal trigger={<DoodleButton size="lg">Join Dreamclerk Today</DoodleButton>} />
+              <DoodleButton size="lg">Coming Soon</DoodleButton>
             </motion.div>
 
             <motion.div
@@ -352,13 +351,9 @@ export default function ForFreshersPage() {
             freshman year.
           </p>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
-            <SignInModal
-              trigger={
-                <DoodleButton size="lg" className="px-8 py-6 text-lg">
-                  Join Dreamclerk Today
-                </DoodleButton>
-              }
-            />
+            <DoodleButton size="lg" className="px-8 py-6 text-lg">
+              Coming Soon
+            </DoodleButton>
           </motion.div>
         </motion.div>
       </DoodleBackground>

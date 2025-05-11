@@ -6,8 +6,7 @@ import { ArrowLeft, MessageSquare, Brain, BarChart4, DollarSign, Users, Lightbul
 import DoodleBackground from "@/components/ui-elements/doodle-background"
 import DoodleButton from "@/components/ui-elements/doodle-button"
 import DoodleCard from "@/components/ui-elements/doodle-card"
-import SignInModal from "@/components/sign-in-modal"
-import { useEffect } from "react" // Add this import
+import { useEffect } from "react"
 
 export default function HowItWorksPage() {
   // Add this useEffect to scroll to top when the page loads
@@ -291,18 +290,16 @@ export default function HowItWorksPage() {
           viewport={{ once: true }}
           className="max-w-7xl mx-auto text-center"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-black mb-6">Ready to Get Started?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-black mb-6">Ready to Learn More?</h2>
           <p className="text-lg text-gray-700 mb-8 max-w-3xl mx-auto">
-            Join thousands of students who are monetizing their college experiences and making a difference.
+            Explore how Dreamclerk is transforming the education experience through real student insights.
           </p>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
-            <SignInModal
-              trigger={
-                <DoodleButton size="sm" className="px-4 py-1 text-sm">
-                  Register Now
-                </DoodleButton>
-              }
-            />
+            <Link href="/">
+              <DoodleButton size="lg" className="px-8">
+                Back to Home
+              </DoodleButton>
+            </Link>
           </motion.div>
         </motion.div>
       </DoodleBackground>
