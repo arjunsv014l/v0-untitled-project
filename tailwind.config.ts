@@ -65,23 +65,6 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Black and white palette
-        bw: {
-          black: "#000000",
-          white: "#FFFFFF",
-          gray: {
-            50: "#F9F9F9",
-            100: "#F2F2F2",
-            200: "#E6E6E6",
-            300: "#D1D1D1",
-            400: "#ADADAD",
-            500: "#808080",
-            600: "#666666",
-            700: "#4D4D4D",
-            800: "#333333",
-            900: "#1A1A1A",
-          },
-        },
       },
       borderRadius: {
         lg: "var(--radius)",

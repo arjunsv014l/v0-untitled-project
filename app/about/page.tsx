@@ -5,8 +5,8 @@ import Link from "next/link"
 import { ArrowLeft, Home, Star, Sparkles, Zap, Heart, Music, Coffee, Shield } from "lucide-react"
 import DoodleBackground from "@/components/ui-elements/doodle-background"
 import DoodleButton from "@/components/ui-elements/doodle-button"
-import SignInModal from "@/components/sign-in-modal"
-import { useEffect } from "react" // Add this import
+import { useEffect } from "react"
+import Footer from "@/components/footer"
 
 export default function AboutPage() {
   // Add this useEffect to scroll to top when the page loads
@@ -15,7 +15,7 @@ export default function AboutPage() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-white pt-20">
+    <main className="min-h-screen bg-white">
       {/* Hero Section */}
       <DoodleBackground className="pt-24 pb-16" density="low">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,19 +73,14 @@ export default function AboutPage() {
                     transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse", delay: 1.5 }}
                   />
                   {/* Squiggly lines */}
-                  <path d="M40 150C60 130 80 170 100 150" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" /> //
-                  Changed from #FFAEBC to purple
-                  <path d="M300 150C320 130 340 170 360 150" stroke="#10B84A" strokeWidth="2" strokeLinecap="round" />{" "}
-                  // Changed from #B4F8C8 to green
-                  <path d="M40 250C60 230 80 270 100 250" stroke="#EC4899" strokeWidth="2" strokeLinecap="round" /> //
-                  Changed from #A0E7E5 to pink
-                  <path d="M300 250C320 230 340 270 360 250" stroke="#10B84A" strokeWidth="2" strokeLinecap="round" />{" "}
-                  // Changed from #FBE7C6 to green
+                  <path d="M40 150C60 130 80 170 100 150" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M300 150C320 130 340 170 360 150" stroke="#10B84A" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M40 250C60 230 80 270 100 250" stroke="#EC4899" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M300 250C320 230 340 270 360 250" stroke="#10B84A" strokeWidth="2" strokeLinecap="round" />
                   {/* Stick figure with headphones */}
                   <g transform="translate(200, 200) scale(1.2)">
                     {/* Head */}
-                    <circle cx="0" cy="-40" r="30" stroke="black" strokeWidth="3" fill="#F0FDF4" />{" "}
-                    {/* Changed from #FFF5E4 to light green */}
+                    <circle cx="0" cy="-40" r="30" stroke="black" strokeWidth="3" fill="#F0FDF4" />
                     {/* Headphones */}
                     <path
                       d="M-40 -40 C-40 -60, -20 -80, 0 -80 C20 -80, 40 -60, 40 -40"
@@ -93,24 +88,18 @@ export default function AboutPage() {
                       strokeWidth="3"
                       fill="none"
                     />
-                    <rect x="-40" y="-55" width="10" height="30" rx="5" stroke="black" strokeWidth="3" fill="#8B5CF6" />{" "}
-                    {/* Changed from #FF9A8B to purple */}
-                    <rect x="30" y="-55" width="10" height="30" rx="5" stroke="black" strokeWidth="3" fill="#8B5CF6" />{" "}
-                    {/* Changed from #FF9A8B to purple */}
+                    <rect x="-40" y="-55" width="10" height="30" rx="5" stroke="black" strokeWidth="3" fill="#8B5CF6" />
+                    <rect x="30" y="-55" width="10" height="30" rx="5" stroke="black" strokeWidth="3" fill="#8B5CF6" />
                     {/* Face with spectacles */}
                     <circle cx="-10" cy="-45" r="3" fill="#333333" /> {/* Left eye */}
                     <circle cx="10" cy="-45" r="3" fill="#333333" /> {/* Right eye */}
                     <path d="M-10 -30 C-5 -25, 5 -25, 10 -30" stroke="#333333" strokeWidth="2" /> {/* Smile */}
                     {/* Spectacles */}
-                    <circle cx="-10" cy="-45" r="7" stroke="#10B84A" strokeWidth="1.5" fill="none" />{" "}
-                    {/* Changed from #7B68EE to green */}
-                    <circle cx="10" cy="-45" r="7" stroke="#10B84A" strokeWidth="1.5" fill="none" />{" "}
-                    {/* Changed from #7B68EE to green */}
-                    <path d="M-3 -45 L3 -45" stroke="#10B84A" strokeWidth="1.5" /> {/* Changed from #7B68EE to green */}
-                    <path d="M-17 -45 L-25 -40" stroke="#10B84A" strokeWidth="1.5" />{" "}
-                    {/* Changed from #7B68EE to green */}
-                    <path d="M17 -45 L25 -40" stroke="#10B84A" strokeWidth="1.5" />{" "}
-                    {/* Changed from #7B68EE to green */}
+                    <circle cx="-10" cy="-45" r="7" stroke="#10B84A" strokeWidth="1.5" fill="none" />
+                    <circle cx="10" cy="-45" r="7" stroke="#10B84A" strokeWidth="1.5" fill="none" />
+                    <path d="M-3 -45 L3 -45" stroke="#10B84A" strokeWidth="1.5" />
+                    <path d="M-17 -45 L-25 -40" stroke="#10B84A" strokeWidth="1.5" />
+                    <path d="M17 -45 L25 -40" stroke="#10B84A" strokeWidth="1.5" />
                     {/* Body */}
                     <path d="M0 -10 L0 50" stroke="#333333" strokeWidth="3" /> {/* Torso */}
                     <path d="M0 0 L-30 30" stroke="#333333" strokeWidth="3" /> {/* Left arm */}
@@ -118,14 +107,11 @@ export default function AboutPage() {
                     <path d="M0 50 L-20 90" stroke="#333333" strokeWidth="3" /> {/* Left leg */}
                     <path d="M0 50 L20 90" stroke="#333333" strokeWidth="3" /> {/* Right leg */}
                     {/* Phone in hand */}
-                    <rect x="20" y="30" width="15" height="25" rx="2" stroke="#333333" strokeWidth="2" fill="#EC4899" />{" "}
-                    {/* Changed from #A0E7E5 to pink */}
+                    <rect x="20" y="30" width="15" height="25" rx="2" stroke="#333333" strokeWidth="2" fill="#EC4899" />
                     {/* Add a t-shirt */}
-                    <path d="M-15 0 L0 -10 L15 0 L15 25 L-15 25 Z" fill="#10B84A" stroke="#333333" strokeWidth="1.5" />{" "}
-                    {/* Changed from #B5EAEA to green */}
+                    <path d="M-15 0 L0 -10 L15 0 L15 25 L-15 25 Z" fill="#10B84A" stroke="#333333" strokeWidth="1.5" />
                     {/* Add some hair */}
-                    <path d="M-20 -50 C-15 -70, 15 -70, 20 -50" stroke="#333333" strokeWidth="2" fill="#8B5CF6" />{" "}
-                    {/* Changed from #FFAEBC to purple */}
+                    <path d="M-20 -50 C-15 -70, 15 -70, 20 -50" stroke="#333333" strokeWidth="2" fill="#8B5CF6" />
                   </g>
                   {/* Floating emojis */}
                   <motion.g
@@ -169,7 +155,7 @@ export default function AboutPage() {
                     cx="150"
                     cy="150"
                     r="8"
-                    fill="#10B84A" // Changed from #FFC3A0 to green
+                    fill="#10B84A"
                     animate={{ y: [0, -15, 0], opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse", delay: 0.2 }}
                   />
@@ -177,7 +163,7 @@ export default function AboutPage() {
                     cx="250"
                     cy="150"
                     r="6"
-                    fill="#8B5CF6" // Changed from #D4A5A5 to purple
+                    fill="#8B5CF6"
                     animate={{ y: [0, -10, 0], opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse", delay: 1.5 }}
                   />
@@ -185,7 +171,7 @@ export default function AboutPage() {
                     cx="150"
                     cy="250"
                     r="10"
-                    fill="#EC4899" // Changed from #A0E7E5 to pink
+                    fill="#EC4899"
                     animate={{ y: [0, -12, 0], opacity: [0.6, 1, 0.6] }}
                     transition={{ duration: 3.5, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse", delay: 0.8 }}
                   />
@@ -221,13 +207,11 @@ export default function AboutPage() {
               </motion.div>
 
               <div className="mt-8 flex justify-start">
-                <SignInModal
-                  trigger={
-                    <DoodleButton size="sm" className="px-3 py-1 text-sm">
-                      Register Now
-                    </DoodleButton>
-                  }
-                />
+                <Link href="/how-it-works">
+                  <DoodleButton size="sm" className="px-3 py-1 text-sm">
+                    Learn More
+                  </DoodleButton>
+                </Link>
               </div>
             </motion.div>
           </div>
@@ -428,16 +412,17 @@ export default function AboutPage() {
             AI.
           </p>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
-            <SignInModal
-              trigger={
-                <DoodleButton size="sm" className="px-4 py-2 text-sm">
-                  Register Now
-                </DoodleButton>
-              }
-            />
+            <Link href="/how-it-works">
+              <DoodleButton size="sm" className="px-4 py-2 text-sm">
+                Learn More
+              </DoodleButton>
+            </Link>
           </motion.div>
         </motion.div>
       </DoodleBackground>
+
+      {/* Include the footer */}
+      <Footer />
     </main>
   )
 }
