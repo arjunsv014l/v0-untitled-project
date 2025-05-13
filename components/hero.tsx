@@ -2,15 +2,18 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { ArrowRight } from "lucide-react"
+import SignInModal from "./sign-in-modal"
+import Counter from "./counter"
+import { ArrowRight, LogIn } from "lucide-react"
 import DoodleBackground from "./ui-elements/doodle-background"
 import DoodleButton from "./ui-elements/doodle-button"
 // Add these imports at the top
 import { Star, Sparkles, Zap } from "lucide-react"
-import Link from "next/link"
+import { useMobile } from "@/hooks/use-mobile"
 
 export default function Hero() {
   const [isHovered, setIsHovered] = useState(false)
+  const isMobile = useMobile()
 
   return (
     <DoodleBackground className="pt-20 pb-16 md:pt-32 md:pb-24" density="high">
@@ -118,19 +121,95 @@ export default function Hero() {
               Share your daily college life, earn rewards, and contribute to the future of AI-driven education.
             </p>
 
-            {/* Removed Register Now button and Active Users counter */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <Link href="/how-it-works">
-                <DoodleButton size="lg" variant="primary" className="group">
-                  Learn More
-                  <motion.span
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1.5, ease: "easeInOut" }}
-                  >
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </motion.span>
-                </DoodleButton>
-              </Link>
+            {/* Center-aligned container for UI elements */}
+            <div className="flex flex-col items-center lg:items-center max-w-xl mx-auto lg:mx-0">
+              {/* Button container with fixed width for consistent centering */}
+              <div className="w-full flex flex-col items-center space-y-4 mb-6">
+                {isMobile && (
+                  <div className="w-full max-w-[240px]">
+                    <SignInModal
+                      trigger={
+                        <DoodleButton
+                          size="lg"
+                          variant="outline"
+                          className="group w-full px-6 py-3 flex items-center justify-center"
+                        >
+                          Sign In
+                          <LogIn className="ml-2 h-5 w-5" />
+                        </DoodleButton>
+                      }
+                    />
+                  </div>
+                )}
+                <div className="w-full max-w-[240px]">
+                  <SignInModal
+                    isRegister={true}
+                    trigger={
+                      <DoodleButton
+                        size="lg"
+                        variant="primary"
+                        className="group w-full px-6 py-3 flex items-center justify-center"
+                      >
+                        Register Now
+                        <motion.span
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1.5, ease: "easeInOut" }}
+                        >
+                          <ArrowRight className="ml-2 h-5 w-5" />
+                        </motion.span>
+                      </DoodleButton>
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Active users widget */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="flex items-center bg-white border-2 border-black px-4 py-3 rounded-lg"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="mr-2"
+                >
+                  <path
+                    d="M17 21V19C17 16.7909 15.2091 15 13 15H5C2.79086 15 1 16.7909 1 19V21"
+                    stroke="black"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z"
+                    stroke="black"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M23 21V19C22.9986 17.1771 21.765 15.5857 20 15.13"
+                    stroke="black"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M16 3.13C17.7699 3.58317 19.0078 5.17799 19.0078 7.005C19.0078 8.83201 17.7699 10.4268 16 10.88"
+                    stroke="black"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="text-gray-700 mr-2 font-medium">Active Users:</span>
+                <Counter endValue={12458} duration={2000} />
+              </motion.div>
             </div>
 
             <div className="mt-8 grid grid-cols-3 gap-4">

@@ -1,19 +1,46 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app"
+import { getAuth } from "firebase-admin/auth"
 import { getFirestore } from "firebase-admin/firestore"
 
-// Parse the Firebase private key (it comes as a string with escaped newlines)
-const privateKey = process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n") : undefined
+// Initialize Firebase Admin
+function initAdmin() {
+  try {
+    // Check if any Firebase apps have been initialized
+    if (!getApps().length) {
+      // Get the private key
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY
+        ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
+        : undefined
 
-const firebaseAdminConfig = {
-  credential: cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey,
-  }),
+      // Check if required environment variables are set
+      if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !privateKey) {
+        console.error("Firebase Admin initialization error: Missing required environment variables")
+        // Return a dummy app to prevent crashes
+        return { isInitialized: false }
+      }
+
+      // Initialize the app
+      initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: privateKey,
+        }),
+      })
+      console.log("Firebase Admin initialized successfully")
+      return { isInitialized: true }
+    }
+    return { isInitialized: true }
+  } catch (error) {
+    console.error("Firebase Admin initialization error:", error)
+    return { isInitialized: false }
+  }
 }
 
 // Initialize Firebase Admin
-const app = getApps().length === 0 ? initializeApp(firebaseAdminConfig) : getApps()[0]
-const adminDb = getFirestore(app)
+const { isInitialized } = initAdmin()
 
-export { adminDb }
+// Export the admin services if initialized
+export const adminAuth = isInitialized ? getAuth() : null
+export const adminDb = isInitialized ? getFirestore() : null
+export const isFirebaseAdminInitialized = isInitialized
