@@ -15,6 +15,9 @@ import { Star, Sparkles, Zap, BookOpen, GraduationCap, Building, Brain } from "l
 // Add this at the top of the file, after the imports
 import { useEffect } from "react"
 
+// Add this import for SocialCommunity at the top of the file:
+import SocialCommunity from "@/components/social-community"
+
 // Add this useEffect inside the Home component, right after the component declaration
 export default function Home() {
   useEffect(() => {
@@ -728,6 +731,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Student Community Section */}
+      <SocialCommunity />
 
       {/* Add LaunchingSoon section here where SocialCommunity was previously */}
       <LaunchingSoon />
