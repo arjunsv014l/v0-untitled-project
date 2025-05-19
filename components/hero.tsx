@@ -5,12 +5,20 @@ import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 import DoodleBackground from "./ui-elements/doodle-background"
 import DoodleButton from "./ui-elements/doodle-button"
-// Add these imports at the top
 import { Star, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
+import HeroRectangularCounter from "./hero-rectangular-counter"
+import SignInModal from "./sign-in-modal"
 
 export default function Hero() {
   const [isHovered, setIsHovered] = useState(false)
+
+  // Handle successful registration
+  const handleRegistrationSuccess = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("incrementUserCount"))
+    }
+  }
 
   return (
     <DoodleBackground className="pt-20 pb-16 md:pt-32 md:pb-24" density="high">
@@ -27,7 +35,7 @@ export default function Hero() {
           repeatType: "reverse",
         }}
       >
-        <Star className="h-16 w-16 text-[#10B84A]" /> {/* Added text color for green */}
+        <Star className="h-16 w-16 text-[#10B84A]" />
       </motion.div>
 
       <motion.div
@@ -42,7 +50,7 @@ export default function Hero() {
           repeatType: "reverse",
         }}
       >
-        <Sparkles className="h-16 w-16 text-[#8B5CF6]" /> {/* Added text color for purple */}
+        <Sparkles className="h-16 w-16 text-[#8B5CF6]" />
       </motion.div>
 
       <motion.div
@@ -57,7 +65,7 @@ export default function Hero() {
           repeatType: "reverse",
         }}
       >
-        <Zap className="h-14 w-14 text-[#EC4899]" /> {/* Added text color for pink */}
+        <Zap className="h-14 w-14 text-[#EC4899]" />
       </motion.div>
 
       <motion.div
@@ -118,10 +126,25 @@ export default function Hero() {
               Share your daily college life, earn rewards, and contribute to the future of AI-driven education.
             </p>
 
-            {/* Removed Register Now button and Active Users counter */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+            {/* Register Now button with counter on the LEFT */}
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-8">
+              <div className="flex items-center">
+                {/* Rectangular User Counter Widget positioned LEFT of the Register Now button */}
+                <HeroRectangularCounter />
+
+                <SignInModal
+                  trigger={
+                    <DoodleButton size="lg" variant="primary" className="group ml-2">
+                      Register Now
+                    </DoodleButton>
+                  }
+                  isRegister={true}
+                  onSuccess={handleRegistrationSuccess}
+                />
+              </div>
+
               <Link href="/how-it-works">
-                <DoodleButton size="lg" variant="primary" className="group">
+                <DoodleButton size="lg" variant="outline" className="group">
                   Learn More
                   <motion.span
                     animate={{ x: [0, 5, 0] }}
@@ -133,7 +156,7 @@ export default function Hero() {
               </Link>
             </div>
 
-            <div className="mt-8 grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               {[
                 { icon: "📚", text: "Real Student Experiences" },
                 { icon: "🧠", text: "AI-Powered Insights" },
@@ -187,28 +210,28 @@ export default function Hero() {
                       >
                         <path
                           d="M80 40C93.3333 53.3333 106.667 53.3333 120 40"
-                          stroke="#10B84A" // Changed to green
+                          stroke="#10B84A"
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
                         <path
                           d="M40 80C53.3333 93.3333 53.3333 106.667 40 120"
-                          stroke="#8B5CF6" // Changed to purple
+                          stroke="#8B5CF6"
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
                         <path
                           d="M120 120C106.667 106.667 106.667 93.3333 120 80"
-                          stroke="#EC4899" // Changed to pink
+                          stroke="#EC4899"
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
                         <path
                           d="M80 120C66.6667 106.667 53.3333 106.667 40 120"
-                          stroke="#10B84A" // Changed to green
+                          stroke="#10B84A"
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -217,7 +240,7 @@ export default function Hero() {
                           cx="80"
                           cy="80"
                           r="30"
-                          stroke="#8B5CF6" // Changed to purple
+                          stroke="#8B5CF6"
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -267,7 +290,7 @@ export default function Hero() {
                             {i % 5 === 0 && (
                               <path
                                 d="M20 10L23 17H30L24 22L27 30L20 25L13 30L16 22L10 17H17L20 10Z"
-                                stroke="#10B84A" // Changed to green
+                                stroke="#10B84A"
                                 strokeWidth="1.5"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -276,7 +299,7 @@ export default function Hero() {
                             {i % 5 === 1 && (
                               <path
                                 d="M10 10H30V30H10V10Z"
-                                stroke="#8B5CF6" // Changed to purple
+                                stroke="#8B5CF6"
                                 strokeWidth="1.5"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -287,7 +310,7 @@ export default function Hero() {
                                 cx="20"
                                 cy="20"
                                 r="10"
-                                stroke="#EC4899" // Changed to pink
+                                stroke="#EC4899"
                                 strokeWidth="1.5"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -296,7 +319,7 @@ export default function Hero() {
                             {i % 5 === 3 && (
                               <path
                                 d="M10 20C10 15 15 10 20 10C25 10 30 15 30 20C30 25 25 30 20 30C15 30 10 25 10 20Z"
-                                stroke="#10B84A" // Changed to green
+                                stroke="#10B84A"
                                 strokeWidth="1.5"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -305,7 +328,7 @@ export default function Hero() {
                             {i % 5 === 4 && (
                               <path
                                 d="M10 15L20 10L30 15L20 20L10 15ZM10 25L20 20L30 25L20 30L10 25Z"
-                                stroke="#8B5CF6" // Changed to purple
+                                stroke="#8B5CF6"
                                 strokeWidth="1.5"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -340,7 +363,7 @@ export default function Hero() {
                             <motion.path
                               key={i}
                               d={`M ${startX} ${startY} L ${endX} ${endY}`}
-                              stroke={colors[colorIndex]} // Use alternating colors
+                              stroke={colors[colorIndex]}
                               strokeWidth="1"
                               strokeDasharray="4 4"
                               initial={{ pathLength: 0, opacity: 0 }}

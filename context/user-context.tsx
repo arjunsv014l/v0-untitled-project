@@ -1,8 +1,16 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { auth, db } from "@/lib/firebase"
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  AuthErrorCodes,
+} from "firebase/auth"
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"
+import { incrementUserCount } from "@/components/user-counter-widget"
 
 // User type for our application
 export interface User {
@@ -12,175 +20,277 @@ export interface User {
   role: "admin" | "editor" | "student" | "guest"
   avatar?: string
   dob?: string
+  createdAt?: string
+  lastLogin?: string
+}
+
+interface AuthResult {
+  success: boolean
+  userId?: string
+  error?: {
+    code: string
+    message: string
+    isNetworkError?: boolean
+  }
 }
 
 interface UserContextType {
   user: User | null
-  login: (email: string, password: string) => Promise<boolean>
-  register: (email: string, password: string, name: string, dob?: string, avatar?: string | null) => Promise<boolean>
-  loginWithGoogle: () => Promise<boolean>
+  login: (email: string, password: string) => Promise<AuthResult>
+  register: (email: string, password: string, name: string, dob?: string, avatar?: string | null) => Promise<AuthResult>
   logout: () => Promise<void>
   isLoading: boolean
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
-// Helper function to convert Supabase user to our User type
-const mapSupabaseUser = (supabaseUser: SupabaseUser): User => {
-  return {
-    id: supabaseUser.id,
-    email: supabaseUser.email || "",
-    name: supabaseUser.user_metadata?.name || supabaseUser.email?.split("@")[0] || "User",
-    role: (supabaseUser.app_metadata?.role as any) || "student",
-    avatar: supabaseUser.user_metadata?.avatar_url,
-    dob: supabaseUser.user_metadata?.dob,
-  }
-}
-
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Check for existing user session on mount
+  // Check for existing user on mount
   useEffect(() => {
-    const checkUserSession = async () => {
+    const checkUser = async () => {
       try {
         setIsLoading(true)
 
-        // Get the current session
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
+        // Set up Firebase auth state listener
+        const unsubscribe = onAuthStateChanged(
+          auth,
+          async (firebaseUser) => {
+            if (firebaseUser) {
+              // User is signed in
+              try {
+                // Get additional user data from Firestore
+                const userDocRef = doc(db, "users", firebaseUser.uid)
+                const userDoc = await getDoc(userDocRef)
 
-        if (session?.user) {
-          const mappedUser = mapSupabaseUser(session.user)
-          setUser(mappedUser)
-        }
+                if (userDoc.exists()) {
+                  const userData = userDoc.data()
+
+                  // Update last login
+                  await updateDoc(userDocRef, {
+                    lastLogin: serverTimestamp(),
+                  }).catch((err) => console.warn("Failed to update last login:", err))
+
+                  // Create user profile
+                  const userProfile: User = {
+                    id: firebaseUser.uid,
+                    email: firebaseUser.email || "",
+                    name: userData?.name || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "",
+                    role: userData?.role || "student",
+                    avatar: userData?.avatar,
+                    dob: userData?.dob,
+                    createdAt: userData?.createdAt ? new Date(userData.createdAt.toDate()).toISOString() : undefined,
+                    lastLogin: userData?.lastLogin ? new Date(userData.lastLogin.toDate()).toISOString() : undefined,
+                  }
+
+                  setUser(userProfile)
+                } else {
+                  // User document doesn't exist, create it
+                  const userProfile: User = {
+                    id: firebaseUser.uid,
+                    email: firebaseUser.email || "",
+                    name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "",
+                    role: "student",
+                  }
+
+                  // Create user document
+                  await setDoc(userDocRef, {
+                    name: userProfile.name,
+                    email: userProfile.email,
+                    role: "student",
+                    createdAt: serverTimestamp(),
+                    lastLogin: serverTimestamp(),
+                  })
+
+                  setUser(userProfile)
+                }
+              } catch (error) {
+                console.error("Error processing user data:", error)
+
+                // Create minimal user profile
+                const userProfile: User = {
+                  id: firebaseUser.uid,
+                  email: firebaseUser.email || "",
+                  name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "",
+                  role: "student",
+                }
+
+                setUser(userProfile)
+              }
+            } else {
+              // User is signed out
+              setUser(null)
+            }
+            setIsLoading(false)
+          },
+          (error) => {
+            console.error("Auth state observer error:", error)
+            setIsLoading(false)
+          },
+        )
+
+        // Clean up subscription on unmount
+        return () => unsubscribe()
       } catch (error) {
-        console.error("Error checking session:", error)
-      } finally {
+        console.error("Error checking user:", error)
         setIsLoading(false)
       }
     }
 
-    checkUserSession()
-
-    // Set up auth state change listener
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const mappedUser = mapSupabaseUser(session.user)
-        setUser(mappedUser)
-      } else if (event === "SIGNED_OUT") {
-        setUser(null)
-      }
-    })
-
-    // Clean up subscription
-    return () => {
-      subscription.unsubscribe()
-    }
+    checkUser()
   }, [])
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+  // Helper function to handle auth errors
+  const handleAuthError = (error: any): AuthResult["error"] => {
+    console.error("Auth error:", error)
 
-      if (error) {
-        console.error("Login error:", error.message)
-        return false
-      }
+    // Check if it's a network error
+    const isNetworkError = error.code === AuthErrorCodes.NETWORK_REQUEST_FAILED
 
-      if (data.user) {
-        const mappedUser = mapSupabaseUser(data.user)
-        setUser(mappedUser)
-        return true
-      }
+    // Format user-friendly error messages
+    let message = "An unknown error occurred"
 
-      return false
-    } catch (error) {
-      console.error("Login error:", error)
-      return false
+    switch (error.code) {
+      case "auth/email-already-in-use":
+        message = "This email is already registered. Please login instead."
+        break
+      case "auth/invalid-email":
+        message = "Please enter a valid email address."
+        break
+      case "auth/weak-password":
+        message = "Password is too weak. Please use at least 6 characters."
+        break
+      case "auth/user-not-found":
+      case "auth/wrong-password":
+        message = "Invalid email or password."
+        break
+      case "auth/network-request-failed":
+        message = "Network error. Please check your internet connection."
+        break
+      default:
+        message = error.message || "An error occurred during authentication."
+    }
+
+    return {
+      code: error.code || "unknown",
+      message,
+      isNetworkError,
     }
   }
 
-  // Extremely simplified registration function
+  const login = async (email: string, password: string): Promise<AuthResult> => {
+    try {
+      setIsLoading(true)
+
+      // Log authentication attempt for debugging
+      console.log("Attempting to sign in with email:", email)
+
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      console.log("Sign in successful for user:", userCredential.user.uid)
+
+      // Get additional user data from Firestore
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid))
+      const userData = userDoc.data()
+
+      // Update last login timestamp
+      await updateDoc(doc(db, "users", userCredential.user.uid), {
+        lastLogin: serverTimestamp(),
+      })
+
+      const userProfile: User = {
+        id: userCredential.user.uid,
+        email: userCredential.user.email || email,
+        name: userData?.name || userCredential.user.displayName || email.split("@")[0],
+        role: userData?.role || "student",
+        avatar: userData?.avatar,
+        dob: userData?.dob,
+        createdAt: userData?.createdAt ? new Date(userData.createdAt.toDate()).toISOString() : undefined,
+        lastLogin: new Date().toISOString(),
+      }
+
+      // Store user in state
+      setUser(userProfile)
+
+      return { success: true, userId: userProfile.id }
+    } catch (error: any) {
+      console.error("Login error details:", error)
+      return {
+        success: false,
+        error: handleAuthError(error),
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const register = async (
     email: string,
     password: string,
     name: string,
     dob?: string,
     avatar?: string | null,
-  ): Promise<boolean> => {
+  ): Promise<AuthResult> => {
     try {
-      console.log("Starting basic registration for:", email)
+      setIsLoading(true)
 
-      // Use the most basic signUp method with minimal options
-      const { data, error } = await supabase.auth.signUp({
+      // Log registration attempt for debugging
+      console.log("Attempting to create user with email:", email)
+
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      console.log("User creation successful for user:", userCredential.user.uid)
+
+      // Create user profile
+      const userProfile: User = {
+        id: userCredential.user.uid,
         email,
-        password,
-        options: {
-          data: {
-            name,
-            dob,
-            avatar_url: avatar,
-          },
-        },
-      })
-
-      if (error) {
-        console.error("Registration error details:", error)
-        return false
+        name,
+        role: "student",
+        dob,
+        avatar: avatar || undefined,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
       }
 
-      if (!data.user) {
-        console.error("No user returned from signUp")
-        return false
+      // Create user profile in Firestore
+      try {
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          name,
+          email,
+          role: "student",
+          dob,
+          avatar,
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+        })
+        console.log("User document created in Firestore")
+
+        // Increment user count
+        await incrementUserCount()
+      } catch (firestoreError) {
+        console.error("Failed to create Firestore profile:", firestoreError)
       }
 
-      console.log("User created successfully:", data.user.id)
+      // Store user in state
+      setUser(userProfile)
 
-      // Set the user in context
-      const mappedUser = mapSupabaseUser(data.user)
-      setUser(mappedUser)
-
-      return true
-    } catch (error) {
-      console.error("Unexpected registration error:", error)
-      return false
-    }
-  }
-
-  const handleGoogleLogin = async (): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-
-      if (error) {
-        console.error("Google login error:", error.message)
-        return false
+      return { success: true, userId: userProfile.id }
+    } catch (error: any) {
+      console.error("Registration error details:", error)
+      return {
+        success: false,
+        error: handleAuthError(error),
       }
-
-      // This will redirect the user to Google, so we won't actually return true here
-      // The auth state change listener will handle setting the user when they return
-      return !!data
-    } catch (error) {
-      console.error("Google login error:", error)
-      return false
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut()
+      await signOut(auth)
+      // Clear user from state
       setUser(null)
     } catch (error) {
       console.error("Logout error:", error)
@@ -193,7 +303,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         user,
         login,
         register,
-        loginWithGoogle: handleGoogleLogin,
         logout,
         isLoading,
       }}

@@ -9,19 +9,23 @@ import { motion } from "framer-motion"
 import { AlertCircle } from "lucide-react"
 
 export default function LoginForm() {
-  const { login, isLoading } = useUser()
+  const { login } = useUser()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
     try {
+      setIsLoading(true)
       await login(email, password)
     } catch (err) {
       setError((err as Error).message || "Failed to login")
+    } finally {
+      setIsLoading(false)
     }
   }
 

@@ -1,0 +1,62 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Common functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isFileSizeUnder(maxSizeMB) {
+      return request.resource.size < maxSizeMB * 1024 * 1024;
+    }
+
+    // Profile images
+    match /profileImages/{userId}/{fileName} {
+      allow read: if true;
+      allow create: if isSignedIn() && 
+                    isOwner(userId) && 
+                    isImageType() && 
+                    isFileSizeUnder(5);
+      allow update, delete: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
+    
+    // Content images
+    match /contentImages/{contentId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && isAdmin() && isImageType() && isFileSizeUnder(10);
+    }
+    
+    // User content images
+    match /userContentImages/{userId}/{fileName} {
+      allow read: if true;
+      allow create: if isSignedIn() && 
+                    isOwner(userId) && 
+                    isImageType() && 
+                    isFileSizeUnder(5);
+      allow update, delete: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
+    
+    // Chat attachments
+    match /chatAttachments/{chatId}/{fileName} {
+      allow read: if isSignedIn() && 
+                  firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true;
+      allow create: if isSignedIn() && 
+                    firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants[request.auth.uid] == true &&
+                    isFileSizeUnder(10);
+      allow delete: if isSignedIn() && isAdmin();
+    }
+  }
+}

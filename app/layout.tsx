@@ -2,8 +2,9 @@ import type React from "react"
 import "./globals.css"
 import { Inter } from "next/font/google"
 import Navigation from "@/components/navigation"
-import { UserProvider } from "@/context/user-context"
 import Footer from "@/components/footer"
+import { UserProvider } from "@/context/user-context"
+import NetworkStatus from "@/components/network-status"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Navigation />
           <main className="pt-16">{children}</main>
           <Footer />
+          <NetworkStatus />
         </UserProvider>
       </body>
     </html>

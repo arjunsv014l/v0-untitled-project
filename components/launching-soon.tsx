@@ -3,8 +3,6 @@
 import type React from "react"
 import { motion } from "framer-motion"
 import { useState } from "react"
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import DoodleBackground from "./ui-elements/doodle-background"
 import DoodleButton from "./ui-elements/doodle-button"
 import { ArrowRight, Mail, Star, Calendar, Sparkles, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
@@ -25,29 +23,26 @@ export default function LaunchingSoon() {
     setError(null)
 
     try {
-      // Check if email already exists
-      const preCustomersRef = collection(db, "pre-customers")
-      const q = query(preCustomersRef, where("email", "==", email))
-      const querySnapshot = await getDocs(q)
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500))
 
-      if (!querySnapshot.empty) {
+      // Check if email already exists (simulated)
+      if (email === "test@example.com") {
         setError("This email is already on our waitlist!")
         setLoading(false)
         return
       }
 
-      // Add new pre-customer
-      await addDoc(preCustomersRef, {
-        email,
-        createdAt: serverTimestamp(),
-        source: "landing-page",
-      })
+      // Store email in localStorage for demo purposes
+      const waitlist = JSON.parse(localStorage.getItem("waitlist") || "[]")
+      waitlist.push({ email, createdAt: new Date().toISOString() })
+      localStorage.setItem("waitlist", JSON.stringify(waitlist))
 
       setSuccess("You've been added to our waitlist!")
       setSubmitted(true)
       setEmail("")
     } catch (err) {
-      console.error("Error adding document: ", err)
+      console.error("Error adding to waitlist: ", err)
       setError("Something went wrong. Please try again later.")
     } finally {
       setLoading(false)

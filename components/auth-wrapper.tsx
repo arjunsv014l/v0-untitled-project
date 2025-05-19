@@ -1,12 +1,13 @@
 "use client"
 
-import { useUser } from "@/context/user-context"
+import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import type { ReactNode } from "react"
 import DoodleBackground from "./ui-elements/doodle-background"
 import DoodleButton from "./ui-elements/doodle-button"
 import SignInModal from "./sign-in-modal"
 import { Lock } from "lucide-react"
+import { useUser } from "@/context/user-context"
 
 interface AuthWrapperProps {
   children: ReactNode
@@ -14,17 +15,29 @@ interface AuthWrapperProps {
 }
 
 export default function AuthWrapper({ children, requiredRoles = [] }: AuthWrapperProps) {
+  // Replace the simulated authentication state
   const { user, isLoading } = useUser()
+  const isAuthenticated = !!user
+  const userRole = user?.role || null
   const router = useRouter()
   const pathname = usePathname()
+
+  useEffect(() => {
+    // Simulate checking authentication status
+  }, [])
 
   // Check if user has required role
   const hasRequiredRole = () => {
     if (!requiredRoles.length) return true
-    if (!user) return false
+    if (!isAuthenticated || !userRole) return false
 
     // Check if the user has any of the required roles
-    return requiredRoles.includes(user.role)
+    return requiredRoles.includes(userRole)
+  }
+
+  // This function is no longer needed as the useUser hook handles authentication
+  const handleLoginSuccess = () => {
+    // The login is now handled by the useUser hook
   }
 
   if (isLoading) {
@@ -35,7 +48,7 @@ export default function AuthWrapper({ children, requiredRoles = [] }: AuthWrappe
     )
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return (
       <DoodleBackground className="min-h-screen pt-32 pb-16" density="low">
         <div className="max-w-md mx-auto text-center px-4">
@@ -47,7 +60,7 @@ export default function AuthWrapper({ children, requiredRoles = [] }: AuthWrappe
             You need to sign in to access this page. Join our community to unlock all features.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <SignInModal trigger={<DoodleButton size="lg">Sign In</DoodleButton>} />
+            <SignInModal trigger={<DoodleButton size="lg">Sign In</DoodleButton>} onSuccess={handleLoginSuccess} />
             <SignInModal
               trigger={
                 <DoodleButton size="lg" variant="outline">
@@ -55,6 +68,7 @@ export default function AuthWrapper({ children, requiredRoles = [] }: AuthWrappe
                 </DoodleButton>
               }
               isRegister={true}
+              onSuccess={handleLoginSuccess}
             />
           </div>
           <button onClick={() => router.push("/")} className="mt-8 text-gray-600 hover:text-black underline">

@@ -1,202 +1,373 @@
 "use client"
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import Link from "next/link"
-import { ArrowLeft, Home, User, Calendar, Mail, Clock } from "lucide-react"
-import DoodleBackground from "@/components/ui-elements/doodle-background"
+import type React from "react"
+
+import { useEffect, useState } from "react"
+import { db } from "@/lib/firebase"
+import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore"
+import AdminLayout from "@/components/admin/admin-layout"
 import DoodleCard from "@/components/ui-elements/doodle-card"
-import AuthWrapper from "@/components/auth-wrapper"
+import DoodleButton from "@/components/ui-elements/doodle-button"
+import { Input } from "@/components/ui/input"
+import { Search, Edit, Trash2, ChevronLeft, ChevronRight, Filter, UserPlus, AlertTriangle } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 
-// Sample user data - in a real app, this would come from a database
-const sampleUsers = [
-  {
-    id: "1",
-    name: "John Smith",
-    email: "john@example.com",
-    dob: "1995-05-15",
-    role: "student",
-    created_at: "2023-01-15T10:30:00Z",
-  },
-  {
-    id: "2",
-    name: "Emily Johnson",
-    email: "emily@example.com",
-    dob: "1998-08-22",
-    role: "student",
-    created_at: "2023-02-10T14:45:00Z",
-  },
-  {
-    id: "3",
-    name: "Michael Brown",
-    email: "michael@example.com",
-    dob: "1997-03-30",
-    role: "student",
-    created_at: "2023-01-28T09:15:00Z",
-  },
-  {
-    id: "4",
-    name: "Sarah Davis",
-    email: "sarah@example.com",
-    dob: "1996-11-12",
-    role: "student",
-    created_at: "2023-03-05T16:20:00Z",
-  },
-  {
-    id: "5",
-    name: "David Wilson",
-    email: "david@example.com",
-    dob: "1999-07-08",
-    role: "student",
-    created_at: "2023-02-22T11:10:00Z",
-  },
-  {
-    id: "6",
-    name: "Admin User",
-    email: "admin@example.com",
-    dob: "1990-01-01",
-    role: "admin",
-    created_at: "2023-01-01T00:00:00Z",
-  },
-  {
-    id: "7",
-    name: "Editor User",
-    email: "editor@example.com",
-    dob: "1992-05-15",
-    role: "editor",
-    created_at: "2023-01-02T00:00:00Z",
-  },
-  {
-    id: "8",
-    name: "Student User",
-    email: "student@example.com",
-    dob: "1998-10-20",
-    role: "student",
-    created_at: "2023-01-03T00:00:00Z",
-  },
-]
+interface User {
+  id: string
+  name: string
+  email: string
+  role: string
+  createdAt: string
+  avatar?: string
+}
 
-export default function UsersAdminPage() {
-  const [users, setUsers] = useState(sampleUsers)
+export default function AdminUsersPage() {
+  const [users, setUsers] = useState<User[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    role: "",
+  })
+  const [roleFilter, setRoleFilter] = useState("all")
 
-  // Filter users based on search term
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const usersPerPage = 10
 
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true)
+        const usersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"))
+        const usersSnapshot = await getDocs(usersQuery)
+        const usersData = usersSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as User[]
+
+        setUsers(usersData)
+        setFilteredUsers(usersData)
+      } catch (error) {
+        console.error("Error fetching users:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [])
+
+  useEffect(() => {
+    let result = users
+
+    // Apply role filter
+    if (roleFilter !== "all") {
+      result = result.filter((user) => user.role === roleFilter)
+    }
+
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      result = result.filter(
+        (user) => user.name.toLowerCase().includes(term) || user.email.toLowerCase().includes(term),
+      )
+    }
+
+    setFilteredUsers(result)
+    setCurrentPage(1) // Reset to first page when filters change
+  }, [searchTerm, roleFilter, users])
+
+  // Get current users for pagination
+  const indexOfLastUser = currentPage * usersPerPage
+  const indexOfFirstUser = indexOfLastUser - usersPerPage
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser)
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage)
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user)
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      role: user.role,
     })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleDeleteUser = (user: User) => {
+    setSelectedUser(user)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteUser = async () => {
+    if (!selectedUser) return
+
+    try {
+      await deleteDoc(doc(db, "users", selectedUser.id))
+      setUsers(users.filter((user) => user.id !== selectedUser.id))
+      setIsDeleteDialogOpen(false)
+    } catch (error) {
+      console.error("Error deleting user:", error)
+    }
+  }
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const saveUserChanges = async () => {
+    if (!selectedUser) return
+
+    try {
+      await updateDoc(doc(db, "users", selectedUser.id), {
+        name: editForm.name,
+        email: editForm.email,
+        role: editForm.role,
+        updatedAt: new Date().toISOString(),
+      })
+
+      // Update local state
+      setUsers(users.map((user) => (user.id === selectedUser.id ? { ...user, ...editForm } : user)))
+
+      setIsEditDialogOpen(false)
+    } catch (error) {
+      console.error("Error updating user:", error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+        </div>
+      </AdminLayout>
+    )
   }
 
   return (
-    <AuthWrapper requiredRoles={["admin"]}>
-      <main className="min-h-screen bg-white pt-20">
-        {/* Header Section */}
-        <DoodleBackground className="pt-24 pb-16" density="low">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center mb-8">
-              <Link href="/" className="inline-flex items-center text-gray-600 hover:text-black transition-colors mr-4">
-                <Home className="h-5 w-5" />
-              </Link>
-              <Link href="/" className="inline-flex items-center text-gray-600 hover:text-black transition-colors">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
-              </Link>
-            </div>
+    <AdminLayout>
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Users</h1>
+          <p className="text-gray-600">Manage user accounts and permissions.</p>
+        </div>
+        <div className="mt-4 md:mt-0">
+          <DoodleButton className="flex items-center">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add New User
+          </DoodleButton>
+        </div>
+      </div>
 
-            <div className="text-center max-w-3xl mx-auto">
-              <div className="inline-flex items-center border-2 border-black px-4 py-2 rounded-full mb-6 bg-white">
-                <span className="font-medium">Admin Area</span>
-              </div>
-
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">Registered Users</h1>
-
-              <p className="text-lg text-gray-700 mb-8">
-                View and manage all registered users in the Dreamclerk platform.
-              </p>
-            </div>
+      <DoodleCard className="mb-6">
+        <div className="p-4 flex flex-col md:flex-row gap-4">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Search users..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-        </DoodleBackground>
-
-        {/* Search and Filter Section */}
-        <section className="py-8 px-4 md:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="relative w-full md:w-auto flex-grow max-w-md">
-                <input
-                  type="text"
-                  placeholder="Search users by name or email..."
-                  className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-500" />
+            <select
+              className="border-2 border-black rounded-lg px-3 py-2"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="editor">Editor</option>
+              <option value="student">Student</option>
+            </select>
           </div>
-        </section>
+        </div>
+      </DoodleCard>
 
-        {/* Users List */}
-        <section className="py-8 px-4 md:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            {filteredUsers.length > 0 ? (
-              <div className="space-y-6">
-                {filteredUsers.map((user, index) => (
-                  <motion.div
-                    key={user.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.05 }}
-                  >
-                    <DoodleCard className="p-6">
-                      <div className="flex flex-col md:flex-row md:items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-
-                        <div className="flex-grow">
-                          <h3 className="text-xl font-bold">{user.name}</h3>
-                          <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2">
-                            <div className="flex items-center text-gray-600">
-                              <Mail className="h-4 w-4 mr-1" />
-                              <span>{user.email}</span>
-                            </div>
-                            <div className="flex items-center text-gray-600">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              <span>{user.dob}</span>
-                            </div>
-                            <div className="flex items-center text-gray-600">
-                              <User className="h-4 w-4 mr-1" />
-                              <span className="capitalize">{user.role}</span>
-                            </div>
-                            <div className="flex items-center text-gray-600">
-                              <Clock className="h-4 w-4 mr-1" />
-                              <span>Joined: {formatDate(user.created_at)}</span>
-                            </div>
-                          </div>
-                        </div>
+      <DoodleCard>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Joined
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {currentUsers.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar || "/placeholder.svg"}
+                            alt={user.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-gray-600 font-medium">{user.name.charAt(0).toUpperCase()}</span>
+                        )}
                       </div>
-                    </DoodleCard>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16">
-                <h3 className="text-2xl font-bold mb-4">No users found</h3>
-                <p className="text-gray-600">Try adjusting your search criteria.</p>
-              </div>
-            )}
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        <div className="text-xs text-gray-500">ID: {user.id.substring(0, 8)}...</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        user.role === "admin"
+                          ? "bg-red-100 text-red-800"
+                          : user.role === "editor"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button onClick={() => handleEditUser(user)} className="text-blue-600 hover:text-blue-900 mr-4">
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => handleDeleteUser(user)} className="text-red-600 hover:text-red-900">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {currentUsers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    No users found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {filteredUsers.length > usersPerPage && (
+          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              Showing {indexOfFirstUser + 1} to {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
+              {filteredUsers.length} users
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-md border border-gray-300 disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-md border border-gray-300 disabled:opacity-50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        </section>
-      </main>
-    </AuthWrapper>
+        )}
+      </DoodleCard>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" name="name" value={editForm.name} onChange={handleEditFormChange} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" value={editForm.email} onChange={handleEditFormChange} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <select
+                id="role"
+                name="role"
+                value={editForm.role}
+                onChange={handleEditFormChange}
+                className="w-full border-2 border-black rounded-lg px-3 py-2"
+              >
+                <option value="student">Student</option>
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <DoodleButton variant="outline">Cancel</DoodleButton>
+            </DialogClose>
+            <DoodleButton onClick={saveUserChanges}>Save Changes</DoodleButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center p-4 bg-red-50 rounded-lg">
+              <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
+              <div>
+                <p className="font-medium text-red-600">Warning: This action cannot be undone</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Are you sure you want to delete the user "{selectedUser?.name}"? All of their data will be permanently
+                  removed.
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <DoodleButton variant="outline">Cancel</DoodleButton>
+            </DialogClose>
+            <DoodleButton onClick={confirmDeleteUser} className="bg-red-600 hover:bg-red-700">
+              Delete User
+            </DoodleButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AdminLayout>
   )
 }
