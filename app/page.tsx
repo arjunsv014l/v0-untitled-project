@@ -56,14 +56,14 @@ export default function Home() {
       {/* Student Community Section */}
       <SocialCommunity />
 
-      {/* Launching Soon Section */}
-      <LaunchingSoon />
-
       {/* Personal Branding Section */}
       <PersonalBrandingSection />
 
       {/* Campus Influence Program */}
       <CampusInfluenceProgram />
+
+      {/* Launching Soon Section - Moved to be the last section */}
+      <LaunchingSoon />
     </main>
   )
 }

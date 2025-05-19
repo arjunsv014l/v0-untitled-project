@@ -5,9 +5,9 @@ import { useRouter, usePathname } from "next/navigation"
 import type { ReactNode } from "react"
 import DoodleBackground from "./ui-elements/doodle-background"
 import DoodleButton from "./ui-elements/doodle-button"
-import SignInModal from "./sign-in-modal"
 import { Lock } from "lucide-react"
 import { useUser } from "@/context/user-context"
+import Link from "next/link"
 
 interface AuthWrapperProps {
   children: ReactNode
@@ -35,11 +35,6 @@ export default function AuthWrapper({ children, requiredRoles = [] }: AuthWrappe
     return requiredRoles.includes(userRole)
   }
 
-  // This function is no longer needed as the useUser hook handles authentication
-  const handleLoginSuccess = () => {
-    // The login is now handled by the useUser hook
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -55,21 +50,14 @@ export default function AuthWrapper({ children, requiredRoles = [] }: AuthWrappe
           <div className="w-20 h-20 mx-auto mb-6 bg-white rounded-full border-2 border-black flex items-center justify-center">
             <Lock className="h-10 w-10" />
           </div>
-          <h1 className="text-3xl font-bold mb-4">Sign In Required</h1>
+          <h1 className="text-3xl font-bold mb-4">Registration Required</h1>
           <p className="text-gray-600 mb-8">
-            You need to sign in to access this page. Join our community to unlock all features.
+            You need to register to access this page. Join our community to unlock all features.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <SignInModal trigger={<DoodleButton size="lg">Sign In</DoodleButton>} onSuccess={handleLoginSuccess} />
-            <SignInModal
-              trigger={
-                <DoodleButton size="lg" variant="outline">
-                  Register
-                </DoodleButton>
-              }
-              isRegister={true}
-              onSuccess={handleLoginSuccess}
-            />
+          <div className="flex justify-center">
+            <Link href="/register">
+              <DoodleButton size="lg">Register Now</DoodleButton>
+            </Link>
           </div>
           <button onClick={() => router.push("/")} className="mt-8 text-gray-600 hover:text-black underline">
             Return to Home

@@ -4,7 +4,6 @@ import { motion } from "framer-motion"
 import { Users, Camera, Award, MessageSquare, Calendar, Hash, Sparkles, Heart, Share2, Star, Zap } from "lucide-react"
 import DoodleButton from "./ui-elements/doodle-button"
 import Image from "next/image"
-import Link from "next/link"
 
 // Toggle this to show/hide reviews
 const SHOW_REVIEWS = false
@@ -386,25 +385,6 @@ export default function CampusCommunitySection() {
               </div>
             </div>
           </div>
-        </motion.div>
-
-        {/* CTA Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-          className="text-center"
-        >
-          <Link href="/community">
-            <DoodleButton className="px-8 py-3 text-lg inline-block">Explore the Community</DoodleButton>
-          </Link>
-          <p className="mt-4 text-gray-600">
-            Already have an account?{" "}
-            <Link href="#" className="text-[#10B84A] font-medium underline">
-              Sign in
-            </Link>
-          </p>
         </motion.div>
       </div>
     </section>

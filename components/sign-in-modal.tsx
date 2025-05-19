@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import DoodleButton from "./ui-elements/doodle-button"
@@ -18,7 +17,6 @@ interface SignInModalProps {
 }
 
 export default function SignInModal({ trigger, isRegister = false, onSuccess }: SignInModalProps) {
-  const [activeTab, setActiveTab] = useState<string>(isRegister ? "register" : "login")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -30,7 +28,7 @@ export default function SignInModal({ trigger, isRegister = false, onSuccess }: 
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const { login, register, isLoading: authLoading } = useUser()
+  const { register, isLoading: authLoading } = useUser()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -44,36 +42,22 @@ export default function SignInModal({ trigger, isRegister = false, onSuccess }: 
     setIsLoading(true)
 
     try {
-      if (activeTab === "login") {
-        const result = await login(formData.email, formData.password)
-        if (result.success) {
-          setSuccess("Login successful!")
-          if (onSuccess) onSuccess()
-        } else {
-          if (result.error?.isNetworkError) {
-            setError("Network error: Please check your internet connection and try again.")
-          } else {
-            setError(result.error?.message || "Invalid email or password")
-          }
-        }
-      } else {
-        // Validate password
-        if (formData.password.length < 6) {
-          setError("Password must be at least 6 characters long")
-          setIsLoading(false)
-          return
-        }
+      // Validate password
+      if (formData.password.length < 6) {
+        setError("Password must be at least 6 characters long")
+        setIsLoading(false)
+        return
+      }
 
-        const result = await register(formData.email, formData.password, formData.name, formData.dob)
-        if (result.success) {
-          setSuccess("Registration successful!")
-          if (onSuccess) onSuccess()
+      const result = await register(formData.email, formData.password, formData.name, formData.dob)
+      if (result.success) {
+        setSuccess("Registration successful!")
+        if (onSuccess) onSuccess()
+      } else {
+        if (result.error?.isNetworkError) {
+          setError("Network error: Please check your internet connection and try again.")
         } else {
-          if (result.error?.isNetworkError) {
-            setError("Network error: Please check your internet connection and try again.")
-          } else {
-            setError(result.error?.message || "Registration failed. Please try again.")
-          }
+          setError(result.error?.message || "Registration failed. Please try again.")
         }
       }
 
@@ -98,173 +82,103 @@ export default function SignInModal({ trigger, isRegister = false, onSuccess }: 
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold">
-            {activeTab === "login" ? "Welcome Back!" : "Join Dreamclerk"}
-          </DialogTitle>
+          <DialogTitle className="text-center text-2xl font-bold">Join Dreamclerk</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="register">Register</TabsTrigger>
-          </TabsList>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="register-email">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                id="register-email"
+                name="email"
+                type="email"
+                placeholder="your@email.com"
+                className="pl-10"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
 
-          <TabsContent value="login">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    className="pl-10"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="John Doe"
+                className="pl-10"
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="pl-10"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-500" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    )}
-                  </button>
-                </div>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="dob">Date of Birth</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                id="dob"
+                name="dob"
+                type="date"
+                className="pl-10"
+                value={formData.dob}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
 
-              <div className="text-right">
-                <a href="#" className="text-sm text-gray-600 hover:text-black">
-                  Forgot password?
-                </a>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="register-password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                id="register-password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                className="pl-10"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-500" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-500" />
+                )}
+              </button>
+            </div>
+          </div>
 
-              <DoodleButton type="submit" className="w-full" disabled={isLoading || authLoading}>
-                {isLoading || authLoading ? "Logging in..." : "Login"}
-              </DoodleButton>
-            </form>
-          </TabsContent>
+          <div className="text-xs text-gray-600">
+            By registering, you agree to our{" "}
+            <a href="/terms" className="underline hover:text-black">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="/privacy" className="underline hover:text-black">
+              Privacy Policy
+            </a>
+            .
+          </div>
 
-          <TabsContent value="register">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="register-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="register-email"
-                    name="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    className="pl-10"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="name"
-                    name="name"
-                    type="text"
-                    placeholder="John Doe"
-                    className="pl-10"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dob">Date of Birth</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="dob"
-                    name="dob"
-                    type="date"
-                    className="pl-10"
-                    value={formData.dob}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="register-password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="register-password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="pl-10"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-500" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="text-xs text-gray-600">
-                By registering, you agree to our{" "}
-                <a href="/terms" className="underline hover:text-black">
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a href="/privacy" className="underline hover:text-black">
-                  Privacy Policy
-                </a>
-                .
-              </div>
-
-              <DoodleButton type="submit" className="w-full" disabled={isLoading || authLoading}>
-                {isLoading || authLoading ? "Creating Account..." : "Create Account"}
-              </DoodleButton>
-            </form>
-          </TabsContent>
-        </Tabs>
+          <DoodleButton type="submit" className="w-full" disabled={isLoading || authLoading}>
+            {isLoading || authLoading ? "Creating Account..." : "Register Now"}
+          </DoodleButton>
+        </form>
 
         {error && (
           <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm flex items-start">

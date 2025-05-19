@@ -1,8 +1,9 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
+
+import type React from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/context/user-context"
 import { Input } from "@/components/ui/input"
@@ -23,6 +24,12 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isLoading) {
+      router.replace("/register")
+    }
+  }, [isLoading, router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

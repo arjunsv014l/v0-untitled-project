@@ -271,18 +271,7 @@ export default function EarnWithDreamclerk() {
               </DoodleCard>
             </motion.div>
 
-            {/* CTA */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="text-center"
-            >
-              <Link href="/sign-up">
-                <DoodleButton className="px-8 py-3 text-lg inline-block">Register Now</DoodleButton>
-              </Link>
-            </motion.div>
+            {/* CTA section has been completely removed */}
           </div>
         )}
 
@@ -406,6 +395,7 @@ export default function EarnWithDreamclerk() {
                     Contact Support
                   </DoodleButton>
                 </Link>
+                {/* Keeping the Register Now button in the FAQ tab */}
                 <Link href="/sign-up">
                   <DoodleButton className="px-6 py-3 inline-block">Register Now</DoodleButton>
                 </Link>

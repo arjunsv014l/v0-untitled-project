@@ -57,16 +57,18 @@ export default function Navigation() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6">
+        <nav className="hidden md:flex items-center space-x-3">
           {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`text-sm font-medium transition-colors ${
-                pathname === item.href ? "text-black" : "text-gray-600 hover:text-black"
-              }`}
-            >
-              {item.label}
+            <Link key={item.href} href={item.href} passHref legacyBehavior>
+              <a>
+                <DoodleButton
+                  size="sm"
+                  variant={pathname === item.href ? "primary" : "outline"}
+                  className={`py-1 px-3 text-sm ${pathname === item.href ? "" : "hover:bg-gray-50"}`}
+                >
+                  {item.label}
+                </DoodleButton>
+              </a>
             </Link>
           ))}
         </nav>
@@ -138,16 +140,7 @@ export default function Navigation() {
               </div>
             </div>
           ) : (
-            <>
-              <SignInModal
-                trigger={
-                  <DoodleButton variant="outline" size="sm">
-                    Login
-                  </DoodleButton>
-                }
-              />
-              <SignInModal trigger={<DoodleButton size="sm">Register</DoodleButton>} isRegister={true} />
-            </>
+            <SignInModal trigger={<DoodleButton size="sm">Register Now</DoodleButton>} isRegister={true} />
           )}
         </div>
 
@@ -168,18 +161,18 @@ export default function Navigation() {
             className="md:hidden bg-white border-t border-gray-200 overflow-hidden"
           >
             <div className="container mx-auto px-4 py-4">
-              <nav className="flex flex-col space-y-4">
+              <nav className="flex flex-col space-y-3">
                 {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`text-sm font-medium p-2 rounded-lg transition-colors ${
-                      pathname === item.href
-                        ? "bg-gray-100 text-black"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-black"
-                    }`}
-                  >
-                    {item.label}
+                  <Link key={item.href} href={item.href} passHref legacyBehavior key={item.href}>
+                    <a className="w-full">
+                      <DoodleButton
+                        variant={pathname === item.href ? "primary" : "outline"}
+                        className="w-full justify-center"
+                        size="sm"
+                      >
+                        {item.label}
+                      </DoodleButton>
+                    </a>
                   </Link>
                 ))}
               </nav>
@@ -228,8 +221,7 @@ export default function Navigation() {
                   </div>
                 ) : (
                   <div className="flex flex-col space-y-3">
-                    <SignInModal trigger={<DoodleButton variant="outline">Login</DoodleButton>} />
-                    <SignInModal trigger={<DoodleButton>Register</DoodleButton>} isRegister={true} />
+                    <SignInModal trigger={<DoodleButton>Register Now</DoodleButton>} isRegister={true} />
                   </div>
                 )}
               </div>
