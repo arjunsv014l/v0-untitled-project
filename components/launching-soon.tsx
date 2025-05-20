@@ -6,6 +6,7 @@ import { useState } from "react"
 import DoodleBackground from "./ui-elements/doodle-background"
 import DoodleButton from "./ui-elements/doodle-button"
 import { ArrowRight, Mail, Star, Calendar, Sparkles, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import SignInModal from "./sign-in-modal"
 
 export default function LaunchingSoon() {
   const [email, setEmail] = useState("")
@@ -181,19 +182,24 @@ export default function LaunchingSoon() {
                 disabled={loading}
               />
             </div>
-            <DoodleButton type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  Notify Me
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </DoodleButton>
+            <SignInModal
+              trigger={
+                <DoodleButton type="button" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Notify Me
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </DoodleButton>
+              }
+              isRegister={true}
+            />
           </motion.form>
         ) : (
           <motion.div

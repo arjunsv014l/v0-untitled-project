@@ -2,8 +2,7 @@
 
 import { motion } from "framer-motion"
 import { useState } from "react"
-import { Brain, BarChart, Users, Zap, MessageSquare, Sparkles, Target, Award, Lightbulb } from "lucide-react"
-import DoodleButton from "./ui-elements/doodle-button"
+import { Brain, BarChart, Users, MessageSquare, Sparkles, Target } from "lucide-react"
 
 export default function StudentAIAssistant() {
   const [activeTab, setActiveTab] = useState<"social" | "career" | "network">("social")
@@ -233,290 +232,25 @@ export default function StudentAIAssistant() {
                           : "bg-white text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100"
                       }`}
                     >
-                      <div className="flex items-center">
-                        {tab === "social" && <BarChart className="h-4 w-4 mr-2" />}
-                        {tab === "career" && <Target className="h-4 w-4 mr-2" />}
-                        {tab === "network" && <Users className="h-4 w-4 mr-2" />}
-                        {tab === "social" && "Social Skills"}
-                        {tab === "career" && "Career Guidance"}
-                        {tab === "network" && "Industry Connections"}
-                      </div>
+                      {tabContent[tab].title}
                     </button>
                   ))}
                 </div>
-
-                <div className="bg-white border-2 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="flex items-center mb-4">
-                    {tabContent[activeTab].icon}
-                    <h3 className="text-xl font-bold ml-3">{tabContent[activeTab].title}</h3>
-                  </div>
-
+                <div className="bg-gray-100 rounded-lg p-8 border-2 border-black">
+                  <h3 className="text-xl font-bold mb-4">{tabContent[activeTab].title}</h3>
                   <p className="text-gray-700 mb-6">{tabContent[activeTab].description}</p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <h4 className="font-bold mb-3 flex items-center">
-                        <Zap className="h-4 w-4 mr-2 text-[#F59E0B]" />
-                        Key Features
-                      </h4>
-                      <ul className="space-y-2">
-                        {tabContent[activeTab].features.map((feature, i) => (
-                          <motion.li
-                            key={i}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 * i }}
-                            className="flex items-start"
-                          >
-                            <svg
-                              width="20"
-                              height="20"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="mr-2 mt-1 flex-shrink-0 text-[#10B84A]"
-                            >
-                              <path
-                                d="M5 12L9 16L19 6"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                            <span className="text-gray-700">{feature}</span>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <div className="border-2 border-black rounded-lg overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <img
-                          src={tabContent[activeTab].image || "/placeholder.svg"}
-                          alt={tabContent[activeTab].title}
-                          className="w-full h-auto"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {activeTab === "social" && (
-                    <div className="bg-gray-50 border-2 border-black rounded-lg p-4">
-                      <div className="flex items-start">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-black flex-shrink-0">
-                          <img
-                            src="/placeholder.svg?height=40&width=40&query=female student portrait"
-                            alt="Student"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-gray-700 italic text-sm">
-                            "The AI helped me identify that I needed to work on my active listening skills. After 4
-                            weeks of guided practice, I've received feedback that I'm much more engaged in group
-                            discussions."
-                          </p>
-                          <p className="text-xs font-medium mt-2">
-                            - Engineering Student, Chennai Institute of Technology
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "career" && (
-                    <div className="bg-gray-50 border-2 border-black rounded-lg p-4">
-                      <div className="flex items-start">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-black flex-shrink-0">
-                          <img
-                            src="/placeholder.svg?height=40&width=40&query=male student portrait"
-                            alt="Student"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-gray-700 italic text-sm">
-                            "The AI identified data visualization as a key skill gap for my target role in business
-                            analytics. Following its learning path, I developed this capability and secured an
-                            internship that aligned perfectly with my career goals."
-                          </p>
-                          <p className="text-xs font-medium mt-2">- Business Student, SRM University</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "network" && (
-                    <div className="bg-gray-50 border-2 border-black rounded-lg p-4">
-                      <div className="flex items-start">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-black flex-shrink-0">
-                          <img
-                            src="/placeholder.svg?height=40&width=40&query=diverse student group"
-                            alt="Student"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-gray-700 italic text-sm">
-                            "The AI matched me with a senior product manager at a leading tech company based on my
-                            interest in UX design. The personalized conversation starters helped me build a genuine
-                            connection that led to a mentorship relationship."
-                          </p>
-                          <p className="text-xs font-medium mt-2">- Design Student, College of Engineering, Guindy</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <ul className="list-disc list-inside space-y-2">
+                    {tabContent[activeTab].features.map((feature, index) => (
+                      <li key={index} className="text-sm">
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-
-              <DoodleButton className="w-full text-center">
-                <span className="flex items-center justify-center">
-                  <Brain className="h-5 w-5 mr-2" />
-                  Meet Your AI Assistant
-                </span>
-              </DoodleButton>
             </motion.div>
           </div>
         </div>
-
-        {/* How It Works */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-          className="mb-16"
-        >
-          <h3 className="text-2xl font-bold mb-8 text-center">How Your AI Assistant Works</h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[
-              {
-                step: 1,
-                title: "Personalized Assessment",
-                description: "Complete a comprehensive assessment to establish your baseline skills and goals.",
-                icon: <Target className="h-10 w-10 text-[#10B84A]" />,
-              },
-              {
-                step: 2,
-                title: "Custom Development Plan",
-                description: "Receive a tailored growth plan focusing on your specific needs and aspirations.",
-                icon: <Award className="h-10 w-10 text-[#8B5CF6]" />,
-              },
-              {
-                step: 3,
-                title: "Guided Practice",
-                description: "Engage in AI-facilitated exercises and real-world applications to build skills.",
-                icon: <Zap className="h-10 w-10 text-[#EC4899]" />,
-              },
-              {
-                step: 4,
-                title: "Continuous Optimization",
-                description: "Your AI adapts to your progress, refining recommendations as you grow.",
-                icon: <Sparkles className="h-10 w-10 text-[#F59E0B]" />,
-              },
-            ].map((step, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: i * 0.2 }}
-                viewport={{ once: true }}
-                className="bg-white p-6 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-              >
-                <div className="flex items-center mb-4">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border-2 border-black mr-4">
-                    <span className="font-bold">{step.step}</span>
-                  </div>
-                  <h4 className="text-lg font-bold">{step.title}</h4>
-                </div>
-                <div className="mb-4">{step.icon}</div>
-                <p className="text-gray-700">{step.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Benefits Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-          className="mb-16"
-        >
-          <h3 className="text-2xl font-bold mb-8 text-center">How Students Benefit</h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                title: "Develop Essential Soft Skills",
-                description: "Build communication, leadership, and teamwork abilities that employers value most.",
-                icon: <BarChart className="h-10 w-10 text-[#10B84A]" />,
-              },
-              {
-                title: "Make Informed Career Decisions",
-                description: "Discover career paths that align with your unique strengths, values, and interests.",
-                icon: <Lightbulb className="h-10 w-10 text-[#8B5CF6]" />,
-              },
-              {
-                title: "Build Your Professional Network",
-                description: "Connect with industry mentors who can provide guidance and open doors to opportunities.",
-                icon: <Users className="h-10 w-10 text-[#EC4899]" />,
-              },
-              {
-                title: "Prepare for Real-World Challenges",
-                description: "Practice handling difficult workplace scenarios before encountering them in real life.",
-                icon: <Target className="h-10 w-10 text-[#F59E0B]" />,
-              },
-              {
-                title: "Track Your Growth Journey",
-                description: "Visualize your progress and celebrate milestones as you develop professionally.",
-                icon: <Award className="h-10 w-10 text-[#3B82F6]" />,
-              },
-              {
-                title: "Get Personalized Feedback",
-                description: "Receive tailored insights that help you refine your approach and accelerate growth.",
-                icon: <MessageSquare className="h-10 w-10 text-[#10B84A]" />,
-              },
-            ].map((benefit, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-white p-6 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-4px] transition-transform duration-300"
-              >
-                <div className="mb-4">{benefit.icon}</div>
-                <h3 className="text-xl font-bold mb-2">{benefit.title}</h3>
-                <p className="text-gray-700">{benefit.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Final CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          viewport={{ once: true }}
-          className="text-center"
-        >
-          <p className="text-lg text-gray-700 mb-6 max-w-2xl mx-auto">
-            Join thousands of students already accelerating their personal and professional growth with our AI
-            assistant.
-          </p>
-          <DoodleButton className="px-8 py-3 text-lg inline-block">
-            <span className="flex items-center">
-              <Brain className="h-5 w-5 mr-2" />
-              Start Your Growth Journey
-            </span>
-          </DoodleButton>
-        </motion.div>
       </div>
     </section>
   )

@@ -42,6 +42,7 @@ export default function Navigation() {
     { label: "For Students", href: "/for-students" },
     { label: "For Companies", href: "/for-companies" },
     { label: "For Universities", href: "/for-universities" },
+    { label: "Career", href: "/influence" },
     { label: "How It Works", href: "/how-it-works" },
   ]
 

@@ -7,7 +7,6 @@ import DoodleBackground from "./ui-elements/doodle-background"
 import DoodleButton from "./ui-elements/doodle-button"
 import { Star, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
-import HeroRectangularCounter from "./hero-rectangular-counter"
 import SignInModal from "./sign-in-modal"
 
 export default function Hero() {
@@ -126,22 +125,17 @@ export default function Hero() {
               Share your daily college life, earn rewards, and contribute to the future of AI-driven education.
             </p>
 
-            {/* Register Now button with counter on the LEFT */}
+            {/* Simplified Register Now button */}
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-8">
-              <div className="flex items-center">
-                {/* Rectangular User Counter Widget positioned LEFT of the Register Now button */}
-                <HeroRectangularCounter />
-
-                <SignInModal
-                  trigger={
-                    <DoodleButton size="lg" variant="primary" className="group ml-2">
-                      Register Now
-                    </DoodleButton>
-                  }
-                  isRegister={true}
-                  onSuccess={handleRegistrationSuccess}
-                />
-              </div>
+              <SignInModal
+                trigger={
+                  <DoodleButton size="lg" variant="primary" className="group">
+                    Register Now
+                  </DoodleButton>
+                }
+                isRegister={true}
+                onSuccess={handleRegistrationSuccess}
+              />
 
               <Link href="/how-it-works">
                 <DoodleButton size="lg" variant="outline" className="group">

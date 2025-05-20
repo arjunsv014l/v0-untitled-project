@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { Users, Briefcase, Building, GraduationCap, Network, Link2 } from "lucide-react"
 import DoodleButton from "./ui-elements/doodle-button"
+import SignInModal from "./sign-in-modal"
 
 export default function SocialCommunity() {
   const [activeTab, setActiveTab] = useState("trending")
@@ -286,7 +287,10 @@ export default function SocialCommunity() {
           viewport={{ once: true }}
           className="mt-12 text-center"
         >
-          <DoodleButton className="px-8 py-3 text-lg inline-block">Register Now</DoodleButton>
+          <SignInModal
+            trigger={<DoodleButton className="px-8 py-3 text-lg inline-block">Register Now</DoodleButton>}
+            isRegister={true}
+          />
         </motion.div>
       </div>
     </section>

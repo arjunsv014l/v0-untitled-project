@@ -1,10 +1,10 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Link from "next/link"
 import { BookOpen, Award, Users, CheckCircle, Brain } from "lucide-react"
 import SectionHeader from "@/components/ui/section-header"
 import FreshersIllustration from "@/components/illustrations/freshers-illustration"
+import SignInModal from "@/components/sign-in-modal"
 
 export default function FreshersSection() {
   return (
@@ -109,22 +109,30 @@ export default function FreshersSection() {
         </div>
 
         <div className="mt-16 text-center">
-          <Link href="/for-freshers">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center px-6 py-3 border-2 border-black rounded-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium transition-colors"
-            >
-              Learn More About Freshman Resources
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </motion.div>
-          </Link>
+          <SignInModal
+            trigger={
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-flex items-center px-6 py-3 border-2 border-black rounded-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium transition-colors cursor-pointer"
+              >
+                Learn More About Freshman Resources
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 ml-2"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </motion.div>
+            }
+            isRegister={true}
+          />
         </div>
       </div>
     </section>

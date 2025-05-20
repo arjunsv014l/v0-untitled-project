@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { Award, Briefcase, Star } from "lucide-react"
 import DoodleButton from "./ui-elements/doodle-button"
-import Link from "next/link"
+import SignInModal from "./sign-in-modal"
 
 export default function PersonalBrandingSection() {
   return (
@@ -297,11 +297,14 @@ export default function PersonalBrandingSection() {
           viewport={{ once: true }}
           className="text-center"
         >
-          <Link href="/influence">
-            <DoodleButton className="px-8 py-3 text-lg inline-block bg-[#EC4899] hover:bg-[#EC4899]/90 text-white border-black">
-              Learn More About Personal Branding
-            </DoodleButton>
-          </Link>
+          <SignInModal
+            trigger={
+              <DoodleButton className="px-8 py-3 text-lg inline-block bg-[#EC4899] hover:bg-[#EC4899]/90 text-white border-black">
+                Learn More About Personal Branding
+              </DoodleButton>
+            }
+            isRegister={true}
+          />
         </motion.div>
       </div>
     </section>

@@ -6,6 +6,7 @@ import DoodleButton from "./ui-elements/doodle-button"
 import DoodleCard from "./ui-elements/doodle-card"
 import Link from "next/link"
 import { useState } from "react"
+import SignInModal from "./sign-in-modal"
 
 export default function EarnWithDreamclerk() {
   const [activeTab, setActiveTab] = useState<"how" | "faq">("how")
@@ -390,15 +391,19 @@ export default function EarnWithDreamclerk() {
             >
               <p className="text-lg text-gray-700 mb-6 max-w-2xl mx-auto">Have more questions? We're here to help!</p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Link href="/contact">
-                  <DoodleButton variant="outline" className="px-6 py-3 inline-block">
-                    Contact Support
-                  </DoodleButton>
-                </Link>
+                <SignInModal
+                  trigger={
+                    <DoodleButton variant="outline" className="px-6 py-3 inline-block">
+                      Contact Support
+                    </DoodleButton>
+                  }
+                  isRegister={true}
+                />
                 {/* Keeping the Register Now button in the FAQ tab */}
-                <Link href="/sign-up">
-                  <DoodleButton className="px-6 py-3 inline-block">Register Now</DoodleButton>
-                </Link>
+                <SignInModal
+                  trigger={<DoodleButton className="px-6 py-3 inline-block">Register Now</DoodleButton>}
+                  isRegister={true}
+                />
               </div>
             </motion.div>
           </div>

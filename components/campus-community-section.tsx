@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { Users, Camera, Award, MessageSquare, Calendar, Hash, Sparkles, Heart, Share2, Star, Zap } from "lucide-react"
 import DoodleButton from "./ui-elements/doodle-button"
 import Image from "next/image"
+import SignInModal from "./sign-in-modal"
 
 // Toggle this to show/hide reviews
 const SHOW_REVIEWS = false
@@ -334,7 +335,10 @@ export default function CampusCommunitySection() {
                   </li>
                 ))}
               </ul>
-              <DoodleButton className="w-full md:w-auto">Join the Program</DoodleButton>
+              <SignInModal
+                trigger={<DoodleButton className="w-full md:w-auto">Join the Program</DoodleButton>}
+                isRegister={true}
+              />
             </div>
 
             <div className="relative">

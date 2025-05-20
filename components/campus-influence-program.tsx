@@ -24,12 +24,11 @@ import {
 } from "lucide-react"
 import DoodleButton from "./ui-elements/doodle-button"
 import DoodleCard from "./ui-elements/doodle-card"
-import Link from "next/link"
 import { useState } from "react"
 import SignInModal from "./sign-in-modal"
 import { useUser } from "@/context/user-context"
 
-export default function CampusInfluenceProgram() {
+const CampusInfluenceProgram = () => {
   const { user: contextUser } = useUser()
   const [activeTab, setActiveTab] = useState("trending")
   const [newPostContent, setNewPostContent] = useState("")
@@ -273,10 +272,15 @@ export default function CampusInfluenceProgram() {
                           <PlusCircle className="h-5 w-5" />
                         </button>
                       </div>
-                      <DoodleButton className="px-4 py-2 text-sm" disabled={!newPostContent.trim()}>
-                        <Send className="h-4 w-4 mr-1" />
-                        Post
-                      </DoodleButton>
+                      <SignInModal
+                        trigger={
+                          <DoodleButton className="px-4 py-2 text-sm" disabled={!newPostContent.trim()}>
+                            <Send className="h-4 w-4 mr-1" />
+                            Post
+                          </DoodleButton>
+                        }
+                        isRegister={true}
+                      />
                     </div>
                   </div>
                 </div>
@@ -366,24 +370,37 @@ export default function CampusInfluenceProgram() {
                       </div>
                     )}
                     <div className="flex space-x-4">
-                      <button
-                        className={`flex items-center ${opportunity.liked ? "text-red-500" : "text-gray-600"} hover:text-red-500`}
-                        onClick={() => handleLike(opportunity.id)}
-                      >
-                        <Heart className={`h-4 w-4 mr-1 ${opportunity.liked ? "fill-current" : ""}`} />
-                        <span className="text-sm">{opportunity.likes}</span>
-                      </button>
-                      <button
-                        className="flex items-center text-gray-600 hover:text-black"
-                        onClick={() => setShowComments(showComments === opportunity.id ? null : opportunity.id)}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        <span className="text-sm">{opportunity.comments.length}</span>
-                      </button>
-                      <button className="flex items-center text-gray-600 hover:text-black">
-                        <Share2 className="h-4 w-4 mr-1" />
-                        <span className="text-sm">Share</span>
-                      </button>
+                      <SignInModal
+                        trigger={
+                          <button
+                            className={`flex items-center ${
+                              opportunity.liked ? "text-red-500" : "text-gray-600"
+                            } hover:text-red-500`}
+                          >
+                            <Heart className={`h-4 w-4 mr-1 ${opportunity.liked ? "fill-current" : ""}`} />
+                            <span className="text-sm">{opportunity.likes}</span>
+                          </button>
+                        }
+                        isRegister={true}
+                      />
+                      <SignInModal
+                        trigger={
+                          <button className="flex items-center text-gray-600 hover:text-black">
+                            <MessageSquare className="h-4 w-4 mr-1" />
+                            <span className="text-sm">{opportunity.comments.length}</span>
+                          </button>
+                        }
+                        isRegister={true}
+                      />
+                      <SignInModal
+                        trigger={
+                          <button className="flex items-center text-gray-600 hover:text-black">
+                            <Share2 className="h-4 w-4 mr-1" />
+                            <span className="text-sm">Share</span>
+                          </button>
+                        }
+                        isRegister={true}
+                      />
                     </div>
 
                     {/* Comments Section */}
@@ -443,12 +460,14 @@ export default function CampusInfluenceProgram() {
                                   }
                                 }}
                               />
-                              <button
-                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
-                                onClick={() => handleSubmitComment(opportunity.id)}
-                              >
-                                <Send className="h-4 w-4" />
-                              </button>
+                              <SignInModal
+                                trigger={
+                                  <button className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black">
+                                    <Send className="h-4 w-4" />
+                                  </button>
+                                }
+                                isRegister={true}
+                              />
                             </div>
                           </div>
                         ) : (
@@ -523,14 +542,24 @@ export default function CampusInfluenceProgram() {
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <DoodleButton className="flex-1 text-sm px-3 py-2">
-                    <Bell className="h-4 w-4 mr-1" />
-                    Notifications
-                  </DoodleButton>
-                  <DoodleButton className="flex-1 text-sm px-3 py-2">
-                    <Settings className="h-4 w-4 mr-1" />
-                    Settings
-                  </DoodleButton>
+                  <SignInModal
+                    trigger={
+                      <DoodleButton className="flex-1 text-sm px-3 py-2">
+                        <Bell className="h-4 w-4 mr-1" />
+                        Notifications
+                      </DoodleButton>
+                    }
+                    isRegister={true}
+                  />
+                  <SignInModal
+                    trigger={
+                      <DoodleButton className="flex-1 text-sm px-3 py-2">
+                        <Settings className="h-4 w-4 mr-1" />
+                        Settings
+                      </DoodleButton>
+                    }
+                    isRegister={true}
+                  />
                 </div>
               </DoodleCard>
             )}
@@ -586,10 +615,15 @@ export default function CampusInfluenceProgram() {
                   </div>
                 ))}
               </div>
-              <DoodleButton className="w-full mt-4 text-sm px-4 py-2">
-                <UserPlus className="h-4 w-4 mr-1" />
-                Find People to Follow
-              </DoodleButton>
+              <SignInModal
+                trigger={
+                  <DoodleButton className="w-full mt-4 text-sm px-4 py-2">
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Find People to Follow
+                  </DoodleButton>
+                }
+                isRegister={true}
+              />
             </DoodleCard>
 
             {/* Measuring Your Career */}
@@ -725,12 +759,15 @@ export default function CampusInfluenceProgram() {
                   <span className="text-xs font-bold text-green-600">↑ 24%</span>
                 </div>
 
-                <Link href="/influence">
-                  <DoodleButton className="w-full text-sm px-4 py-2">
-                    <Star className="h-4 w-4 mr-2" />
-                    Learn More
-                  </DoodleButton>
-                </Link>
+                <SignInModal
+                  trigger={
+                    <DoodleButton className="w-full text-sm px-4 py-2">
+                      <Star className="h-4 w-4 mr-2" />
+                      Learn More
+                    </DoodleButton>
+                  }
+                  isRegister={true}
+                />
               </motion.div>
             </DoodleCard>
           </div>
@@ -739,3 +776,5 @@ export default function CampusInfluenceProgram() {
     </section>
   )
 }
+
+export default CampusInfluenceProgram
