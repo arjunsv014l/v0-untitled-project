@@ -124,6 +124,7 @@ export default function StudentsSection() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="inline-flex items-center px-6 py-3 border-2 border-black rounded-full bg-purple-100 hover:bg-purple-200 text-purple-800 font-medium transition-colors cursor-pointer"
+                onClick={() => (window.location.href = "/for-students")}
               >
                 Learn How to Start Earning
                 <svg
@@ -140,7 +141,7 @@ export default function StudentsSection() {
                 </svg>
               </motion.div>
             }
-            isRegister={true}
+            isRegister={false}
           />
         </div>
       </div>

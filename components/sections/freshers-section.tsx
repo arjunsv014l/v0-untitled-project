@@ -115,6 +115,7 @@ export default function FreshersSection() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="inline-flex items-center px-6 py-3 border-2 border-black rounded-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium transition-colors cursor-pointer"
+                onClick={() => (window.location.href = "/for-freshers")}
               >
                 Learn More About Freshman Resources
                 <svg
@@ -131,7 +132,7 @@ export default function FreshersSection() {
                 </svg>
               </motion.div>
             }
-            isRegister={true}
+            isRegister={false}
           />
         </div>
       </div>

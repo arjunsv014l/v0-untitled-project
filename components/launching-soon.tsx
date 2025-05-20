@@ -184,7 +184,13 @@ export default function LaunchingSoon() {
             </div>
             <SignInModal
               trigger={
-                <DoodleButton type="button" disabled={loading}>
+                <DoodleButton
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    if (!loading) window.location.href = "/waitlist"
+                  }}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -198,7 +204,7 @@ export default function LaunchingSoon() {
                   )}
                 </DoodleButton>
               }
-              isRegister={true}
+              isRegister={false}
             />
           </motion.form>
         ) : (

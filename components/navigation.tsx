@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Menu, X, ChevronDown, User } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useUser } from "@/context/user-context"
@@ -15,6 +14,7 @@ export default function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
   const { user, logout, isLoading } = useUser()
 
   useEffect(() => {
@@ -36,6 +36,13 @@ export default function Navigation() {
     setIsProfileOpen(false)
   }
 
+  // Custom navigation handler that scrolls to top
+  const handleNavigation = (href: string) => {
+    router.push(href)
+    window.scrollTo(0, 0)
+  }
+
+  // Update the navItems array to include the AI Assistant link
   const navItems = [
     { label: "Home", href: "/" },
     { label: "For Freshers", href: "/for-freshers" },
@@ -43,6 +50,7 @@ export default function Navigation() {
     { label: "For Companies", href: "/for-companies" },
     { label: "For Universities", href: "/for-universities" },
     { label: "Career", href: "/influence" },
+    { label: "AI Assistant", href: "/ai-assistant" },
     { label: "How It Works", href: "/how-it-works" },
   ]
 
@@ -53,24 +61,22 @@ export default function Navigation() {
       }`}
     >
       <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold">
+        <button onClick={() => handleNavigation("/")} className="text-2xl font-bold">
           Dreamclerk
-        </Link>
+        </button>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-3">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href} passHref legacyBehavior>
-              <a>
-                <DoodleButton
-                  size="sm"
-                  variant={pathname === item.href ? "primary" : "outline"}
-                  className={`py-1 px-3 text-sm ${pathname === item.href ? "" : "hover:bg-gray-50"}`}
-                >
-                  {item.label}
-                </DoodleButton>
-              </a>
-            </Link>
+            <button key={item.href} onClick={() => handleNavigation(item.href)} className="focus:outline-none">
+              <DoodleButton
+                size="sm"
+                variant={pathname === item.href ? "primary" : "outline"}
+                className={`py-1 px-3 text-sm ${pathname === item.href ? "" : "hover:bg-gray-50"}`}
+              >
+                {item.label}
+              </DoodleButton>
+            </button>
           ))}
         </nav>
 
@@ -112,21 +118,25 @@ export default function Navigation() {
                         <p className="text-sm text-gray-600">{user.email}</p>
                       </div>
                       <div className="py-1">
-                        <Link
-                          href="/profile"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setIsProfileOpen(false)}
+                        <button
+                          onClick={() => {
+                            handleNavigation("/profile")
+                            setIsProfileOpen(false)
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
                           Profile
-                        </Link>
+                        </button>
                         {user.role === "admin" && (
-                          <Link
-                            href="/admin/dashboard"
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => setIsProfileOpen(false)}
+                          <button
+                            onClick={() => {
+                              handleNavigation("/admin/dashboard")
+                              setIsProfileOpen(false)
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           >
                             Admin Dashboard
-                          </Link>
+                          </button>
                         )}
                         <button
                           onClick={handleLogout}
@@ -164,17 +174,19 @@ export default function Navigation() {
             <div className="container mx-auto px-4 py-4">
               <nav className="flex flex-col space-y-3">
                 {navItems.map((item) => (
-                  <Link key={item.href} href={item.href} passHref legacyBehavior key={item.href}>
-                    <a className="w-full">
-                      <DoodleButton
-                        variant={pathname === item.href ? "primary" : "outline"}
-                        className="w-full justify-center"
-                        size="sm"
-                      >
-                        {item.label}
-                      </DoodleButton>
-                    </a>
-                  </Link>
+                  <button
+                    key={item.href}
+                    onClick={() => handleNavigation(item.href)}
+                    className="w-full focus:outline-none"
+                  >
+                    <DoodleButton
+                      variant={pathname === item.href ? "primary" : "outline"}
+                      className="w-full justify-center"
+                      size="sm"
+                    >
+                      {item.label}
+                    </DoodleButton>
+                  </button>
                 ))}
               </nav>
 
@@ -202,18 +214,21 @@ export default function Navigation() {
                     </div>
 
                     <div className="space-y-2">
-                      <Link href="/profile" className="block w-full p-2 text-sm text-left rounded-lg hover:bg-gray-100">
+                      <button
+                        onClick={() => handleNavigation("/profile")}
+                        className="block w-full p-2 text-sm text-left rounded-lg hover:bg-gray-100"
+                      >
                         <User className="inline-block h-4 w-4 mr-2" />
                         Profile
-                      </Link>
+                      </button>
                       {user.role === "admin" && (
-                        <Link
-                          href="/admin/dashboard"
+                        <button
+                          onClick={() => handleNavigation("/admin/dashboard")}
                           className="block w-full p-2 text-sm text-left rounded-lg hover:bg-gray-100"
                         >
                           <User className="inline-block h-4 w-4 mr-2" />
                           Admin Dashboard
-                        </Link>
+                        </button>
                       )}
                       <DoodleButton onClick={handleLogout} className="w-full">
                         Logout

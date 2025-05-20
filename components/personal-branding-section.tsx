@@ -299,11 +299,14 @@ export default function PersonalBrandingSection() {
         >
           <SignInModal
             trigger={
-              <DoodleButton className="px-8 py-3 text-lg inline-block bg-[#EC4899] hover:bg-[#EC4899]/90 text-white border-black">
+              <DoodleButton
+                className="px-8 py-3 text-lg inline-block bg-[#EC4899] hover:bg-[#EC4899]/90 text-white border-black"
+                onClick={() => (window.location.href = "/career")}
+              >
                 Learn More About Personal Branding
               </DoodleButton>
             }
-            isRegister={true}
+            isRegister={false}
           />
         </motion.div>
       </div>

@@ -336,8 +336,12 @@ export default function CampusCommunitySection() {
                 ))}
               </ul>
               <SignInModal
-                trigger={<DoodleButton className="w-full md:w-auto">Join the Program</DoodleButton>}
-                isRegister={true}
+                trigger={
+                  <DoodleButton className="w-full md:w-auto" onClick={() => (window.location.href = "/community")}>
+                    Join the Program
+                  </DoodleButton>
+                }
+                isRegister={false}
               />
             </div>
 

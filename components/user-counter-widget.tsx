@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Users } from "lucide-react"
 import { db } from "@/lib/firebase"
-import { doc, getDoc, updateDoc, increment, setDoc, serverTimestamp } from "firebase/firestore"
+import { doc, getDoc, updateDoc, increment, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore"
 
 // Simulated counter data
 const INITIAL_COUNT = 2547
@@ -40,6 +40,11 @@ export async function incrementUserCount() {
     // Save to localStorage as a fallback
     localStorage.setItem("userCount", newCount.toString())
 
+    // Dispatch a custom event to notify all counter instances
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("userCountUpdated", { detail: { count: newCount } }))
+    }
+
     return newCount
   } catch (error) {
     console.error("Error incrementing user count:", error)
@@ -48,6 +53,12 @@ export async function incrementUserCount() {
     const currentCount = Number.parseInt(localStorage.getItem("userCount") || INITIAL_COUNT.toString())
     const newCount = currentCount + 1
     localStorage.setItem("userCount", newCount.toString())
+
+    // Still dispatch the event with the fallback count
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("userCountUpdated", { detail: { count: newCount } }))
+    }
+
     return newCount
   }
 }
@@ -56,23 +67,26 @@ export default function UserCounterWidget() {
   const [count, setCount] = useState(INITIAL_COUNT)
   const [isAnimating, setIsAnimating] = useState(false)
   const pathRef = useRef<SVGPathElement>(null)
+  const unsubscribeRef = useRef<() => void | null>(null)
 
   useEffect(() => {
-    // Fetch the count from Firebase
-    const fetchCount = async () => {
+    // Set up real-time listener for counter updates
+    const setupRealtimeCounter = async () => {
       try {
         const counterRef = doc(db, "stats", "userCounter")
-        const counterDoc = await getDoc(counterRef)
 
-        if (counterDoc.exists()) {
-          setCount(counterDoc.data().count)
-          localStorage.setItem("userCount", counterDoc.data().count.toString())
+        // First, try to get the initial count
+        const initialSnapshot = await getDoc(counterRef)
+
+        if (initialSnapshot.exists()) {
+          const initialCount = initialSnapshot.data().count
+          setCount(initialCount)
+          localStorage.setItem("userCount", initialCount.toString())
         } else {
-          // If the document doesn't exist, create it with the initial count
+          // If document doesn't exist, create it with calculated count
           const calculatedCount = calculateInitialCount()
           setCount(calculatedCount)
 
-          // Create the counter document
           await setDoc(counterRef, {
             count: calculatedCount,
             createdAt: serverTimestamp(),
@@ -81,18 +95,28 @@ export default function UserCounterWidget() {
 
           localStorage.setItem("userCount", calculatedCount.toString())
         }
-      } catch (error) {
-        console.error("Error fetching user count:", error)
 
-        // Fallback to localStorage or calculate a new count
-        const storedCount = localStorage.getItem("userCount")
-        if (storedCount) {
-          setCount(Number.parseInt(storedCount))
-        } else {
-          const calculatedCount = calculateInitialCount()
-          setCount(calculatedCount)
-          localStorage.setItem("userCount", calculatedCount.toString())
-        }
+        // Set up real-time listener for future updates
+        const unsubscribe = onSnapshot(
+          counterRef,
+          (snapshot) => {
+            if (snapshot.exists()) {
+              const newCount = snapshot.data().count
+              setCount(newCount)
+              setIsAnimating(true)
+              setTimeout(() => setIsAnimating(false), 1000)
+              localStorage.setItem("userCount", newCount.toString())
+            }
+          },
+          (error) => {
+            console.error("Real-time counter error:", error)
+          },
+        )
+
+        unsubscribeRef.current = unsubscribe
+      } catch (error) {
+        console.error("Error setting up real-time counter:", error)
+        fallbackToLocalStorage()
       }
     }
 
@@ -104,23 +128,39 @@ export default function UserCounterWidget() {
       return INITIAL_COUNT + daysSinceLaunch * DAILY_INCREASE_RATE
     }
 
-    fetchCount()
-
-    // Simulate occasional increments
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7) {
-        // 30% chance of increment
-        setIsAnimating(true)
-        incrementUserCount().then((newCount) => {
-          setCount(newCount)
-          setTimeout(() => {
-            setIsAnimating(false)
-          }, 1000)
-        })
+    // Fallback to localStorage if Firebase fails
+    const fallbackToLocalStorage = () => {
+      const storedCount = localStorage.getItem("userCount")
+      if (storedCount) {
+        setCount(Number.parseInt(storedCount))
+      } else {
+        const calculatedCount = calculateInitialCount()
+        setCount(calculatedCount)
+        localStorage.setItem("userCount", calculatedCount.toString())
       }
-    }, 10000) // Check every 10 seconds
+    }
 
-    return () => clearInterval(interval)
+    // Listen for custom events from other counter instances
+    const handleCountUpdate = (event: CustomEvent) => {
+      const newCount = event.detail.count
+      setCount(newCount)
+      setIsAnimating(true)
+      setTimeout(() => setIsAnimating(false), 1000)
+    }
+
+    // Add event listener for custom count updates
+    window.addEventListener("userCountUpdated", handleCountUpdate as EventListener)
+
+    // Initialize the counter
+    setupRealtimeCounter()
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener("userCountUpdated", handleCountUpdate as EventListener)
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current()
+      }
+    }
   }, [])
 
   return (
@@ -146,17 +186,16 @@ export default function UserCounterWidget() {
       </svg>
 
       {/* Content */}
-      <div className="flex items-center px-4 py-2 relative z-10">
+      <div className="flex items-center px-4 py-2 relative z-10 bg-gradient-to-r from-green-100 to-green-50 rounded-md">
         <motion.div
           animate={isAnimating ? { scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] } : {}}
           transition={{ duration: 0.5 }}
-          className="mr-2 p-1.5 bg-[#FFECB3] rounded-full border-2 border-black"
-          style={{ boxShadow: "2px 2px 0 rgba(0,0,0,0.8)" }}
+          className="mr-3 p-2 bg-green-500 rounded-full border-2 border-green-600 shadow-lg"
         >
-          <Users className="h-4 w-4 text-[#FF6D00]" />
+          <Users className="h-4 w-4 text-white" />
         </motion.div>
 
-        <div className="flex items-baseline">
+        <div className="flex flex-col">
           <AnimatePresence mode="popLayout">
             <motion.span
               key={count}
@@ -164,17 +203,17 @@ export default function UserCounterWidget() {
               animate={{ opacity: 1, y: 0, rotate: 0 }}
               exit={{ opacity: 0, y: 10, rotate: 5 }}
               transition={{ duration: 0.3 }}
-              className="font-bold mr-1 text-[#333333]"
+              className="font-bold text-lg text-green-800 leading-tight"
               style={{
-                fontFamily: "'Comic Sans MS', cursive, sans-serif",
-                textShadow: "1px 1px 0 rgba(0,0,0,0.1)",
+                fontFamily: "system-ui, sans-serif",
+                textShadow: "0px 1px 1px rgba(255,255,255,0.5)",
               }}
             >
               {count.toLocaleString()}
             </motion.span>
           </AnimatePresence>
-          <span className="text-xs text-gray-600" style={{ fontFamily: "'Comic Sans MS', cursive, sans-serif" }}>
-            users
+          <span className="text-xs text-green-700 font-medium" style={{ fontFamily: "system-ui, sans-serif" }}>
+            students joined
           </span>
         </div>
       </div>

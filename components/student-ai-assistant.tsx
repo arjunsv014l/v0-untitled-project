@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { useState } from "react"
 import { Brain, BarChart, Users, MessageSquare, Sparkles, Target } from "lucide-react"
+import DoodleButton from "@/components/ui-elements/doodle-button"
 
 export default function StudentAIAssistant() {
   const [activeTab, setActiveTab] = useState<"social" | "career" | "network">("social")
@@ -251,6 +252,20 @@ export default function StudentAIAssistant() {
             </motion.div>
           </div>
         </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+          className="text-center mt-8"
+        >
+          <DoodleButton
+            className="px-8 py-3 text-lg inline-block bg-[#10B84A] hover:bg-[#10B84A]/90 text-white border-black"
+            onClick={() => (window.location.href = "/ai-assistant")}
+          >
+            Try AI Assistant
+          </DoodleButton>
+        </motion.div>
       </div>
     </section>
   )
