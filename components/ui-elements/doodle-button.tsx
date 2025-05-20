@@ -1,10 +1,10 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 interface DoodleButtonProps {
   children: React.ReactNode
@@ -15,6 +15,7 @@ interface DoodleButtonProps {
   icon?: React.ReactNode
   type?: "button" | "submit" | "reset"
   disabled?: boolean
+  href?: string
 }
 
 export default function DoodleButton({
@@ -26,8 +27,10 @@ export default function DoodleButton({
   icon,
   type = "button",
   disabled = false,
+  href = "/career",
 }: DoodleButtonProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const router = useRouter()
 
   const sizeClasses = {
     sm: "py-1.5 px-3 text-sm",
@@ -46,7 +49,14 @@ export default function DoodleButton({
   return (
     <motion.button
       type={type}
-      onClick={onClick}
+      onClick={(e) => {
+        if (href) {
+          router.push(href)
+        }
+        if (onClick) {
+          onClick()
+        }
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       whileHover={{ scale: 1.03 }}
