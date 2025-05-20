@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase"
 import { doc, getDoc, updateDoc, increment, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore"
 
 // Simulated counter data
-const INITIAL_COUNT = 2547
+const INITIAL_COUNT = 500
 const DAILY_INCREASE_RATE = 15 // New users per day on average
 
 export async function incrementUserCount() {
@@ -83,17 +83,16 @@ export default function UserCounterWidget() {
           setCount(initialCount)
           localStorage.setItem("userCount", initialCount.toString())
         } else {
-          // If document doesn't exist, create it with calculated count
-          const calculatedCount = calculateInitialCount()
-          setCount(calculatedCount)
+          // If document doesn't exist, create it with INITIAL_COUNT (500)
+          setCount(INITIAL_COUNT)
 
           await setDoc(counterRef, {
-            count: calculatedCount,
+            count: INITIAL_COUNT,
             createdAt: serverTimestamp(),
             lastUpdated: serverTimestamp(),
           })
 
-          localStorage.setItem("userCount", calculatedCount.toString())
+          localStorage.setItem("userCount", INITIAL_COUNT.toString())
         }
 
         // Set up real-time listener for future updates

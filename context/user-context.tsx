@@ -11,6 +11,7 @@ import {
 } from "firebase/auth"
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"
 import { incrementUserCount } from "@/components/counter"
+import { createRegistration } from "@/lib/firestore-db"
 
 // User type for our application
 export interface User {
@@ -61,11 +62,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
             if (firebaseUser) {
               // User is signed in
               try {
+                console.log("Auth state changed: User is signed in", firebaseUser.uid)
                 // Get additional user data from Firestore
                 const userDocRef = doc(db, "users", firebaseUser.uid)
                 const userDoc = await getDoc(userDocRef)
 
                 if (userDoc.exists()) {
+                  console.log("User document exists in Firestore")
                   const userData = userDoc.data()
 
                   // Update last login
@@ -88,6 +91,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                   setUser(userProfile)
                 } else {
                   // User document doesn't exist, create it
+                  console.warn("User document doesn't exist in Firestore. Creating it now.")
                   const userProfile: User = {
                     id: firebaseUser.uid,
                     email: firebaseUser.email || "",
@@ -96,13 +100,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
                   }
 
                   // Create user document
-                  await setDoc(userDocRef, {
-                    name: userProfile.name,
-                    email: userProfile.email,
-                    role: "student",
-                    createdAt: serverTimestamp(),
-                    lastLogin: serverTimestamp(),
-                  })
+                  try {
+                    await setDoc(userDocRef, {
+                      name: userProfile.name,
+                      email: userProfile.email,
+                      role: "student",
+                      createdAt: serverTimestamp(),
+                      lastLogin: serverTimestamp(),
+                      notes: "Document created during auth state change for existing auth user",
+                    })
+                    console.log("✅ User document created in Firestore during auth state change")
+                  } catch (firestoreError) {
+                    console.error("❌ Error creating user document during auth state change:", firestoreError)
+                    // Try to get more details about the error
+                    if (firestoreError.code === "permission-denied") {
+                      console.error("This appears to be a Firestore permissions issue. Check your security rules.")
+                    }
+                  }
 
                   setUser(userProfile)
                 }
@@ -121,6 +135,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
               }
             } else {
               // User is signed out
+              console.log("Auth state changed: User is signed out")
               setUser(null)
             }
             setIsLoading(false)
@@ -191,29 +206,58 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log("Sign in successful for user:", userCredential.user.uid)
 
       // Get additional user data from Firestore
-      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid))
-      const userData = userDoc.data()
+      try {
+        const userRef = doc(db, "users", userCredential.user.uid)
+        const userDoc = await getDoc(userRef)
+        const userData = userDoc.data()
 
-      // Update last login timestamp
-      await updateDoc(doc(db, "users", userCredential.user.uid), {
-        lastLogin: serverTimestamp(),
-      })
+        if (userDoc.exists()) {
+          // Update last login timestamp
+          await updateDoc(userRef, {
+            lastLogin: serverTimestamp(),
+          })
+          console.log("✅ Last login timestamp updated")
+        } else {
+          console.warn("⚠️ User document doesn't exist for existing auth user. Creating it now.")
+          // Create the document for existing auth users who don't have a Firestore document
+          await setDoc(userRef, {
+            name: userCredential.user.displayName || email.split("@")[0],
+            email: userCredential.user.email || email,
+            role: "student",
+            createdAt: serverTimestamp(),
+            lastLogin: serverTimestamp(),
+            authProvider: "email",
+            notes: "Document created during login for existing auth user",
+          })
+          console.log("✅ User document created for existing auth user during login")
+        }
 
-      const userProfile: User = {
-        id: userCredential.user.uid,
-        email: userCredential.user.email || email,
-        name: userData?.name || userCredential.user.displayName || email.split("@")[0],
-        role: userData?.role || "student",
-        avatar: userData?.avatar,
-        dob: userData?.dob,
-        createdAt: userData?.createdAt ? new Date(userData.createdAt.toDate()).toISOString() : undefined,
-        lastLogin: new Date().toISOString(),
+        const userProfile: User = {
+          id: userCredential.user.uid,
+          email: userCredential.user.email || email,
+          name: userData?.name || userCredential.user.displayName || email.split("@")[0],
+          role: userData?.role || "student",
+          avatar: userData?.avatar,
+          dob: userData?.dob,
+          createdAt: userData?.createdAt ? new Date(userData.createdAt.toDate()).toISOString() : undefined,
+          lastLogin: new Date().toISOString(),
+        }
+
+        // Store user in state
+        setUser(userProfile)
+      } catch (firestoreError) {
+        console.error("❌ Error accessing Firestore during login:", firestoreError)
+        // Create minimal user profile even if Firestore fails
+        const userProfile: User = {
+          id: userCredential.user.uid,
+          email: userCredential.user.email || email,
+          name: userCredential.user.displayName || email.split("@")[0],
+          role: "student",
+        }
+        setUser(userProfile)
       }
 
-      // Store user in state
-      setUser(userProfile)
-
-      return { success: true, userId: userProfile.id }
+      return { success: true, userId: userCredential.user.uid }
     } catch (error: any) {
       console.error("Login error details:", error)
       return {
@@ -225,6 +269,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // In the register function, ensure we're storing all required user data and incrementing the counter
   const register = async (
     email: string,
     password: string,
@@ -239,9 +284,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log("Attempting to create user with email:", email)
 
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      console.log("User creation successful for user:", userCredential.user.uid)
+      console.log("✅ User creation successful for user:", userCredential.user.uid)
 
-      // Create user profile
+      // Create user profile with all required fields
       const userProfile: User = {
         id: userCredential.user.uid,
         email,
@@ -253,18 +298,57 @@ export function UserProvider({ children }: { children: ReactNode }) {
         lastLogin: new Date().toISOString(),
       }
 
-      // Create user profile in Firestore
+      // Create user profile in Firestore with all required fields
       try {
-        await setDoc(doc(db, "users", userCredential.user.uid), {
-          name,
-          email,
+        console.log("Creating user document in Firestore...")
+
+        // Ensure we're explicitly storing name, DOB, and timestamps
+        const userData = {
+          name: name, // Explicitly store name
+          email: email,
           role: "student",
-          dob,
-          avatar,
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
+          dob: dob || null, // Explicitly store DOB, use null if not provided
+          avatar: avatar || null,
+          createdAt: serverTimestamp(), // Server timestamp for creation time
+          lastLogin: serverTimestamp(), // Server timestamp for last login
+          authProvider: "email",
+          registrationDate: new Date().toISOString(), // Also store as ISO string for easier reading
+        }
+
+        // Create user document with explicit error handling
+        await setDoc(doc(db, "users", userCredential.user.uid), userData)
+          .then(() => {
+            console.log(
+              "✅ User document successfully created in Firestore with fields:",
+              Object.keys(userData).join(", "),
+            )
+          })
+          .catch((error) => {
+            console.error("❌ Error creating user document:", error)
+            // Try to get more details about the error
+            if (error.code === "permission-denied") {
+              console.error("This appears to be a Firestore permissions issue. Check your security rules.")
+            }
+          })
+
+        // Also create a registration record in the registrations collection
+        await createRegistration({
+          userId: userCredential.user.uid,
+          email: email,
+          name: name,
+          dob: dob,
+          source: "email",
         })
-        console.log("User document created in Firestore")
+          .then((result) => {
+            if (result.success) {
+              console.log("✅ Registration record created with ID:", result.id)
+            } else {
+              console.error("❌ Failed to create registration record:", result.error)
+            }
+          })
+          .catch((err) => {
+            console.error("❌ Exception while creating registration record:", err)
+          })
 
         // Increment user count - this will update the counter in real-time
         await incrementUserCount()
@@ -283,7 +367,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
             console.error("Failed to update user count:", err)
           })
       } catch (firestoreError) {
-        console.error("Failed to create Firestore profile:", firestoreError)
+        console.error("❌ Failed to create Firestore profile:", firestoreError)
+        console.error("Error details:", firestoreError)
       }
 
       // Store user in state

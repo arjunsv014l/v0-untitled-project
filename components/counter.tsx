@@ -15,9 +15,29 @@ interface CounterProps {
 
 // Initial count value
 const INITIAL_COUNT = 500
+const LOCAL_STORAGE_COUNTER_KEY = "dreamclerk_user_counter"
 
 export async function incrementUserCount() {
   try {
+    // First check if we're online
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      console.warn("⚠️ Offline: Using local storage for counter increment")
+      // Store in local storage that we need to increment when back online
+      const pendingIncrements = Number.parseInt(localStorage.getItem("pendingCounterIncrements") || "0") + 1
+      localStorage.setItem("pendingCounterIncrements", pendingIncrements.toString())
+
+      // Get current local count and increment it
+      const currentLocalCount = Number.parseInt(
+        localStorage.getItem(LOCAL_STORAGE_COUNTER_KEY) || INITIAL_COUNT.toString(),
+      )
+      const newCount = currentLocalCount + 1
+      localStorage.setItem(LOCAL_STORAGE_COUNTER_KEY, newCount.toString())
+
+      // Dispatch event to update UI
+      window.dispatchEvent(new CustomEvent("userCountUpdated", { detail: { count: newCount } }))
+      return newCount
+    }
+
     // Update the counter in Firestore
     const counterRef = doc(db, "stats", "userCounter")
 
@@ -43,6 +63,9 @@ export async function incrementUserCount() {
     const updatedDoc = await getDoc(counterRef)
     const newCount = updatedDoc.data()?.count || INITIAL_COUNT + 1
 
+    // Update local storage for offline fallback
+    localStorage.setItem(LOCAL_STORAGE_COUNTER_KEY, newCount.toString())
+
     // Dispatch a custom event to notify all counter instances
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("userCountUpdated", { detail: { count: newCount } }))
@@ -51,7 +74,18 @@ export async function incrementUserCount() {
     return newCount
   } catch (error) {
     console.error("Error incrementing user count:", error)
-    return INITIAL_COUNT
+
+    // Fallback to local storage
+    const currentLocalCount = Number.parseInt(
+      localStorage.getItem(LOCAL_STORAGE_COUNTER_KEY) || INITIAL_COUNT.toString(),
+    )
+    const newCount = currentLocalCount + 1
+    localStorage.setItem(LOCAL_STORAGE_COUNTER_KEY, newCount.toString())
+
+    // Dispatch event to update UI
+    window.dispatchEvent(new CustomEvent("userCountUpdated", { detail: { count: newCount } }))
+
+    return newCount
   }
 }
 
@@ -65,9 +99,10 @@ export default function Counter({
   const [count, setCount] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [isUserCounter, setIsUserCounter] = useState(false)
-  const unsubscribeRef = useRef<() => void | null>(null)
+  const unsubscribeRef = useRef<(() => void) | null>(null)
   const counterRef = useRef<HTMLDivElement>(null)
   const hasAnimated = useRef(false)
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     // Check if this is a user counter (endValue is exactly 12458 from the provided code)
@@ -84,11 +119,87 @@ export default function Counter({
       if (unsubscribeRef.current) {
         unsubscribeRef.current()
       }
+
+      // Clear any retry timeouts
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+      }
     }
   }, [endValue])
 
+  // Handle online/offline status changes
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log("🌐 Back online: Syncing counter data")
+      syncCounterWithFirestore()
+    }
+
+    window.addEventListener("online", handleOnline)
+
+    return () => {
+      window.removeEventListener("online", handleOnline)
+    }
+  }, [])
+
+  // Sync local counter with Firestore when we come back online
+  const syncCounterWithFirestore = async () => {
+    try {
+      // Check if we have pending increments
+      const pendingIncrements = Number.parseInt(localStorage.getItem("pendingCounterIncrements") || "0")
+
+      if (pendingIncrements > 0) {
+        console.log(`🔄 Syncing ${pendingIncrements} pending counter increments`)
+
+        const counterRef = doc(db, "stats", "userCounter")
+        const counterDoc = await getDoc(counterRef)
+
+        if (counterDoc.exists()) {
+          await updateDoc(counterRef, {
+            count: increment(pendingIncrements),
+            lastUpdated: serverTimestamp(),
+          })
+        } else {
+          await setDoc(counterRef, {
+            count: INITIAL_COUNT + pendingIncrements,
+            createdAt: serverTimestamp(),
+            lastUpdated: serverTimestamp(),
+          })
+        }
+
+        // Clear pending increments
+        localStorage.setItem("pendingCounterIncrements", "0")
+
+        // Get the updated count
+        const updatedDoc = await getDoc(counterRef)
+        const newCount = updatedDoc.data()?.count || INITIAL_COUNT + pendingIncrements
+
+        // Update local storage
+        localStorage.setItem(LOCAL_STORAGE_COUNTER_KEY, newCount.toString())
+
+        // Update UI
+        setCount(newCount)
+      }
+    } catch (error) {
+      console.error("Error syncing counter with Firestore:", error)
+    }
+  }
+
   const setupUserCounter = async () => {
     try {
+      // First try to get the count from local storage as a fallback
+      const localCount = localStorage.getItem(LOCAL_STORAGE_COUNTER_KEY)
+      if (localCount) {
+        setCount(Number.parseInt(localCount))
+      } else {
+        setCount(INITIAL_COUNT)
+      }
+
+      // Check if we're online before trying to access Firestore
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        console.warn("⚠️ Offline: Using local storage for counter")
+        return
+      }
+
       const counterRef = doc(db, "stats", "userCounter")
 
       // First, try to get the initial count
@@ -97,6 +208,7 @@ export default function Counter({
       if (initialSnapshot.exists()) {
         const initialCount = initialSnapshot.data().count
         setCount(initialCount)
+        localStorage.setItem(LOCAL_STORAGE_COUNTER_KEY, initialCount.toString())
       } else {
         // If document doesn't exist, create it with initial count
         setCount(INITIAL_COUNT)
@@ -106,23 +218,35 @@ export default function Counter({
           createdAt: serverTimestamp(),
           lastUpdated: serverTimestamp(),
         })
+
+        localStorage.setItem(LOCAL_STORAGE_COUNTER_KEY, INITIAL_COUNT.toString())
       }
 
       // Set up real-time listener for future updates
-      const unsubscribe = onSnapshot(
-        counterRef,
-        (snapshot) => {
-          if (snapshot.exists()) {
-            const newCount = snapshot.data().count
-            animateCountChange(newCount)
-          }
-        },
-        (error) => {
-          console.error("Real-time counter error:", error)
-        },
-      )
+      try {
+        const unsubscribe = onSnapshot(
+          counterRef,
+          (snapshot) => {
+            if (snapshot.exists()) {
+              const newCount = snapshot.data().count
+              animateCountChange(newCount)
+              localStorage.setItem(LOCAL_STORAGE_COUNTER_KEY, newCount.toString())
+            }
+          },
+          (error) => {
+            console.error("Real-time counter error:", error)
+            // If we get an error with the real-time listener, fall back to local storage
+            const localCount = localStorage.getItem(LOCAL_STORAGE_COUNTER_KEY)
+            if (localCount) {
+              setCount(Number.parseInt(localCount))
+            }
+          },
+        )
 
-      unsubscribeRef.current = unsubscribe
+        unsubscribeRef.current = unsubscribe
+      } catch (error) {
+        console.error("Error setting up real-time listener:", error)
+      }
 
       // Listen for custom events from other counter instances
       const handleCountUpdate = (event: CustomEvent) => {
@@ -142,7 +266,27 @@ export default function Counter({
       }
     } catch (error) {
       console.error("Error setting up user counter:", error)
-      setCount(INITIAL_COUNT)
+
+      // If we get an error, try to use local storage
+      const localCount = localStorage.getItem(LOCAL_STORAGE_COUNTER_KEY)
+      if (localCount) {
+        setCount(Number.parseInt(localCount))
+      } else {
+        setCount(INITIAL_COUNT)
+        localStorage.setItem(LOCAL_STORAGE_COUNTER_KEY, INITIAL_COUNT.toString())
+      }
+
+      // Set up a retry mechanism
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+      }
+
+      retryTimeoutRef.current = setTimeout(() => {
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          console.log("🔄 Retrying counter setup...")
+          setupUserCounter()
+        }
+      }, 10000) // Retry after 10 seconds
     }
   }
 

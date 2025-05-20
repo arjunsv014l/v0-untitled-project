@@ -15,6 +15,7 @@ export const initializeFirebase = () => {
       messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
       measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+      // The databaseId is "(default)" but we don't need to specify it for client-side code
     }
 
     // Log configuration for debugging (without sensitive data)
@@ -36,8 +37,10 @@ export const initializeFirebase = () => {
     // Initialize Firebase
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApp()
     const auth = getAuth(app)
-    const db = getFirestore(app)
+    const db = getFirestore(app) // This automatically uses the default database
     const storage = getStorage(app)
+
+    console.log("Firebase initialized successfully with database ID: (default)")
 
     // Set persistence to local for better user experience
     setPersistence(auth, browserLocalPersistence).catch((error) => {
