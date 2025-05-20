@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useUser } from "@/context/user-context"
+import { db } from "@/lib/firebase"
+import { doc, getDoc, updateDoc, increment, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore"
 
 interface CounterProps {
   endValue?: number
@@ -10,7 +11,48 @@ interface CounterProps {
   className?: string
   textClassName?: string
   animateOnView?: boolean
-  isUserCounter?: boolean
+}
+
+// Initial count value
+const INITIAL_COUNT = 500
+
+export async function incrementUserCount() {
+  try {
+    // Update the counter in Firestore
+    const counterRef = doc(db, "stats", "userCounter")
+
+    // Get the document first to check if it exists
+    const counterDoc = await getDoc(counterRef)
+
+    if (counterDoc.exists()) {
+      // Update existing counter
+      await updateDoc(counterRef, {
+        count: increment(1),
+        lastUpdated: serverTimestamp(),
+      })
+    } else {
+      // Create counter document if it doesn't exist
+      await setDoc(counterRef, {
+        count: INITIAL_COUNT + 1,
+        createdAt: serverTimestamp(),
+        lastUpdated: serverTimestamp(),
+      })
+    }
+
+    // Get the updated count
+    const updatedDoc = await getDoc(counterRef)
+    const newCount = updatedDoc.data()?.count || INITIAL_COUNT + 1
+
+    // Dispatch a custom event to notify all counter instances
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("userCountUpdated", { detail: { count: newCount } }))
+    }
+
+    return newCount
+  } catch (error) {
+    console.error("Error incrementing user count:", error)
+    return INITIAL_COUNT
+  }
 }
 
 export default function Counter({
@@ -19,20 +61,70 @@ export default function Counter({
   className = "",
   textClassName = "",
   animateOnView = true,
-  isUserCounter = false,
 }: CounterProps) {
   const [count, setCount] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isUserCounter, setIsUserCounter] = useState(false)
+  const unsubscribeRef = useRef<() => void | null>(null)
   const counterRef = useRef<HTMLDivElement>(null)
   const hasAnimated = useRef(false)
-  const { userCount } = useUser()
 
   useEffect(() => {
-    if (isUserCounter) {
-      // Use the userCount from context
-      setCount(userCount)
+    // Check if this is a user counter (endValue is exactly 12458 from the provided code)
+    if (endValue === 12458) {
+      setIsUserCounter(true)
+      setupUserCounter()
+    } else {
+      // Regular counter animation
+      animateCounter()
+    }
 
-      // Listen for custom events from user registration
+    return () => {
+      // Clean up Firestore listener if it exists
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current()
+      }
+    }
+  }, [endValue])
+
+  const setupUserCounter = async () => {
+    try {
+      const counterRef = doc(db, "stats", "userCounter")
+
+      // First, try to get the initial count
+      const initialSnapshot = await getDoc(counterRef)
+
+      if (initialSnapshot.exists()) {
+        const initialCount = initialSnapshot.data().count
+        setCount(initialCount)
+      } else {
+        // If document doesn't exist, create it with initial count
+        setCount(INITIAL_COUNT)
+
+        await setDoc(counterRef, {
+          count: INITIAL_COUNT,
+          createdAt: serverTimestamp(),
+          lastUpdated: serverTimestamp(),
+        })
+      }
+
+      // Set up real-time listener for future updates
+      const unsubscribe = onSnapshot(
+        counterRef,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const newCount = snapshot.data().count
+            animateCountChange(newCount)
+          }
+        },
+        (error) => {
+          console.error("Real-time counter error:", error)
+        },
+      )
+
+      unsubscribeRef.current = unsubscribe
+
+      // Listen for custom events from other counter instances
       const handleCountUpdate = (event: CustomEvent) => {
         const newCount = event.detail.count
         animateCountChange(newCount)
@@ -44,12 +136,15 @@ export default function Counter({
       // Return cleanup function
       return () => {
         window.removeEventListener("userCountUpdated", handleCountUpdate as EventListener)
+        if (unsubscribeRef.current) {
+          unsubscribeRef.current()
+        }
       }
-    } else {
-      // Regular counter animation
-      animateCounter()
+    } catch (error) {
+      console.error("Error setting up user counter:", error)
+      setCount(INITIAL_COUNT)
     }
-  }, [isUserCounter, userCount, endValue])
+  }
 
   const animateCountChange = (newCount: number) => {
     setIsAnimating(true)

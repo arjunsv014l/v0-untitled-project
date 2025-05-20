@@ -10,7 +10,7 @@ import {
   AuthErrorCodes,
 } from "firebase/auth"
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"
-import { incrementUserCount } from "@/lib/user-counter"
+import { incrementUserCount } from "@/components/counter"
 
 // User type for our application
 export interface User {
@@ -264,12 +264,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
         })
-        console.log("User document created in Firestore with details:", { name, dob })
+        console.log("User document created in Firestore")
 
-        // Increment user count
+        // Increment user count - this will update the counter in real-time
         await incrementUserCount()
           .then((newCount) => {
             console.log("User count updated to:", newCount)
+            // Dispatch a global event that all counter instances can listen for
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("userRegistered", {
+                  detail: { count: newCount },
+                }),
+              )
+            }
           })
           .catch((err) => {
             console.error("Failed to update user count:", err)

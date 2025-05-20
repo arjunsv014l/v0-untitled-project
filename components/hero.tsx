@@ -8,7 +8,7 @@ import DoodleButton from "./ui-elements/doodle-button"
 import { Star, Sparkles, Zap } from "lucide-react"
 import Link from "next/link"
 import SignInModal from "./sign-in-modal"
-import UserCounter from "./user-counter"
+import Counter from "./counter"
 
 export default function Hero() {
   const [isHovered, setIsHovered] = useState(false)
@@ -190,7 +190,7 @@ export default function Hero() {
                   />
                 </svg>
                 <span className="text-gray-700 mr-2 font-medium">Active Users:</span>
-                <UserCounter showLabel={false} />
+                <Counter endValue={12458} duration={2000} />
               </motion.div>
 
               <SignInModal
