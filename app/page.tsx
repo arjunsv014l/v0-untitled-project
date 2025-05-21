@@ -13,6 +13,7 @@ import CampusInfluenceProgram from "@/components/campus-influence-program"
 import SocialCommunity from "@/components/social-community"
 import LaunchingSoon from "@/components/launching-soon"
 import DoodleButton from "@/components/ui-elements/doodle-button"
+import SignInModal from "@/components/sign-in-modal"
 
 export default function HomePage() {
   useEffect(() => {
@@ -30,9 +31,17 @@ export default function HomePage() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center justify-center">
-      <h1 className="text-3xl font-bold mb-6">Welcome to DreamClerk</h1>
-      <DoodleButton>Go to Careers</DoodleButton>
+    <main className="flex min-h-screen flex-col items-center justify-center p-4">
+      <h1 className="text-3xl font-bold mb-8">DreamClerk</h1>
+
+      <div className="space-y-4">
+        <DoodleButton>Go to Career Page</DoodleButton>
+
+        <SignInModal
+          trigger={<DoodleButton variant="outline">Register Now</DoodleButton>}
+          onSuccess={() => alert("Registration successful!")}
+        />
+      </div>
 
       <Hero />
 

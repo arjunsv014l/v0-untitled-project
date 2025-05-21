@@ -106,6 +106,27 @@ export default function SignInModal({ trigger, isRegister = false, onSuccess }: 
     }
   }
 
+  const handleRegister = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      // Simplified registration with mock data
+      const result = await register("user@example.com", "password", "Demo User")
+
+      if (result.success) {
+        setIsOpen(false)
+        if (onSuccess) onSuccess()
+      } else {
+        setError("Registration failed")
+      }
+    } catch (error) {
+      setError("An error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild onClick={() => setIsOpen(true)}>
@@ -126,100 +147,125 @@ export default function SignInModal({ trigger, isRegister = false, onSuccess }: 
               <DialogTitle className="text-center text-2xl font-bold">Join Dreamclerk</DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="register-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="register-email"
-                    name="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    className="pl-10"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
+            {isRegister ? (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="register-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input
+                      id="register-email"
+                      name="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      className="pl-10"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="name"
-                    name="name"
-                    type="text"
-                    placeholder="John Doe"
-                    className="pl-10"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input
+                      id="name"
+                      name="name"
+                      type="text"
+                      placeholder="John Doe"
+                      className="pl-10"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dob">Date of Birth</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="dob"
-                    name="dob"
-                    type="date"
-                    className="pl-10"
-                    value={formData.dob}
-                    onChange={handleInputChange}
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Date of Birth</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input
+                      id="dob"
+                      name="dob"
+                      type="date"
+                      className="pl-10"
+                      value={formData.dob}
+                      onChange={handleInputChange}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="register-password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="register-password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="pl-10"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="register-password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input
+                      id="register-password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="pl-10"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-500" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-600">
+                  By registering, you agree to our{" "}
+                  <a href="/terms" className="underline hover:text-black">
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" className="underline hover:text-black">
+                    Privacy Policy
+                  </a>
+                  .
+                </div>
+
+                <DoodleButton type="submit" className="w-full" disabled={isLoading || authLoading}>
+                  {isLoading || authLoading ? "Creating Account..." : "Register Now"}
+                </DoodleButton>
+              </form>
+            ) : (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg max-w-md w-full">
+                  <h2 className="text-xl font-bold mb-4">Join DreamClerk</h2>
+
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    onClick={handleRegister}
+                    disabled={isLoading}
+                    className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-500" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-500" />
-                    )}
+                    {isLoading ? "Creating Account..." : "Register Now"}
+                  </button>
+
+                  {error && <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">{error}</div>}
+
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="mt-4 w-full py-2 px-4 border border-gray-300 rounded"
+                  >
+                    Cancel
                   </button>
                 </div>
               </div>
-
-              <div className="text-xs text-gray-600">
-                By registering, you agree to our{" "}
-                <a href="/terms" className="underline hover:text-black">
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a href="/privacy" className="underline hover:text-black">
-                  Privacy Policy
-                </a>
-                .
-              </div>
-
-              <DoodleButton type="submit" className="w-full" disabled={isLoading || authLoading}>
-                {isLoading || authLoading ? "Creating Account..." : "Register Now"}
-              </DoodleButton>
-            </form>
+            )}
 
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
