@@ -12,8 +12,9 @@ import PersonalBrandingSection from "@/components/personal-branding-section"
 import CampusInfluenceProgram from "@/components/campus-influence-program"
 import SocialCommunity from "@/components/social-community"
 import LaunchingSoon from "@/components/launching-soon"
+import DoodleButton from "@/components/ui-elements/doodle-button"
 
-export default function Home() {
+export default function HomePage() {
   useEffect(() => {
     // Check if we're returning from another page
     const savedScrollPosition = localStorage.getItem("landingPageScrollPosition")
@@ -29,7 +30,10 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white flex flex-col items-center justify-center">
+      <h1 className="text-3xl font-bold mb-6">Welcome to DreamClerk</h1>
+      <DoodleButton>Go to Careers</DoodleButton>
+
       <Hero />
 
       {/* Earn With Dreamclerk Section */}

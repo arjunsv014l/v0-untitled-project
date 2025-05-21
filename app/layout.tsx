@@ -1,32 +1,21 @@
 import type React from "react"
 import "./globals.css"
-import { Inter } from "next/font/google"
-import Navigation from "@/components/navigation"
-import Footer from "@/components/footer"
-import { UserProvider } from "@/context/user-context"
-import NetworkStatus from "@/components/network-status"
-import ScrollToTop from "@/components/scroll-to-top"
+import type { Metadata } from "next"
 
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata = {
-  title: "Dreamclerk - Monetize Your College Experience",
-  description: "Share your authentic college experiences and earn rewards with Dreamclerk.",
+export const metadata: Metadata = {
+  title: "DreamClerk",
+  description: "DreamClerk minimal app",
     generator: 'v0.dev'
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <UserProvider>
-          <ScrollToTop />
-          <Navigation />
-          <main className="pt-16">{children}</main>
-          <Footer />
-          <NetworkStatus />
-        </UserProvider>
-      </body>
+      <body>{children}</body>
     </html>
   )
 }

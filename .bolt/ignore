@@ -1,0 +1,9 @@
+# Ignore everything except the minimal files needed
+node_modules/
+.next/
+out/
+public/
+*.log
+.DS_Store
+.env*
+!.env.example
