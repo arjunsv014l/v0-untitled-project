@@ -45,7 +45,7 @@ export default function Navigation() {
     window.scrollTo(0, 0)
   }
 
-  // Update the navItems array to include the Blog link
+  // Update the navItems array to include the AI Assistant link
   const navItems = [
     { label: "Home", href: "/" },
     { label: "For Freshers", href: "/for-freshers" },
@@ -53,7 +53,6 @@ export default function Navigation() {
     { label: "For Companies", href: "/for-companies" },
     { label: "For Universities", href: "/for-universities" },
     { label: "Career", href: "/influence" },
-    { label: "Blog", href: "/blog" },
     { label: "AI Assistant", href: "/ai-assistant" },
     { label: "How It Works", href: "/how-it-works" },
   ]
@@ -164,7 +163,10 @@ export default function Navigation() {
               </div>
             </div>
           ) : (
-            <ActionButton config={getButtonConfig("REGISTER", { size: "sm" })} />
+            <div className="flex items-center space-x-3">
+              <ActionButton config={getButtonConfig("LOGIN", { size: "sm" })} />
+              <ActionButton config={getButtonConfig("REGISTER", { size: "sm" })} />
+            </div>
           )}
         </div>
 
@@ -239,6 +241,7 @@ export default function Navigation() {
                   </div>
                 ) : (
                   <div className="flex flex-col space-y-3">
+                    <ActionButton config={getButtonConfig("LOGIN", { className: "w-full" })} />
                     <ActionButton config={getButtonConfig("REGISTER", { className: "w-full" })} />
                   </div>
                 )}

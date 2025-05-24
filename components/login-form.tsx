@@ -21,11 +21,7 @@ export default function LoginForm() {
 
     try {
       setIsLoading(true)
-      const result = await login(email, password)
-
-      if (!result.success) {
-        throw new Error(result.error?.message || "Failed to login")
-      }
+      await login(email, password)
     } catch (err) {
       setError((err as Error).message || "Failed to login")
     } finally {
@@ -81,6 +77,13 @@ export default function LoginForm() {
           <DoodleButton type="submit" className="w-full" variant="gradient" disabled={isLoading}>
             {isLoading ? "Logging in..." : "Login"}
           </DoodleButton>
+        </div>
+
+        <div className="text-center text-sm text-gray-500 mt-4">
+          <p>Demo accounts:</p>
+          <p>admin@dreamclerk.com / password123</p>
+          <p>student@dreamclerk.com / password123</p>
+          <p>editor@dreamclerk.com / password123</p>
         </div>
       </form>
     </div>
