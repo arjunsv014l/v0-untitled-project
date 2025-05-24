@@ -5,8 +5,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Users } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
+// Base count value - we start at 500
+const BASE_COUNT = 500
+
 export default function DashboardCounter() {
-  const [count, setCount] = useState<number | null>(0)
+  const [count, setCount] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isAnimating, setIsAnimating] = useState(false)
 
@@ -24,7 +27,7 @@ export default function DashboardCounter() {
       }
 
       // Return the base count plus the actual number of registrations
-      return registrationCount
+      return BASE_COUNT + registrationCount
     } catch (error) {
       console.error("Error in getRegistrationCount:", error)
       return null
@@ -74,31 +77,22 @@ export default function DashboardCounter() {
       setIsLoading(true)
 
       // Get the actual registration count
-      const { count: registrationCount, error: countError } = await supabase
-        .from("registrations")
-        .select("*", { count: "exact", head: true })
+      const actualCount = await getRegistrationCount()
 
-      if (countError) {
-        console.error("Error getting registration count:", countError)
+      // Get the current counter value
+      const counterValue = await getCounterValue()
+
+      // If either value is null, we can't reconcile
+      if (actualCount === null || counterValue === null) {
+        console.error("Could not reconcile counter: missing data")
         setIsLoading(false)
         return
       }
 
-      // Use the actual count without BASE_COUNT
-      const actualCount = registrationCount || 0
-
-      // Get the current counter value
-      const { data, error } = await supabase.from("stats").select("count").eq("name", "user_counter").single()
-      const counterValue = data?.count || 0
-
       // If the counter is out of sync, update it
       if (actualCount !== counterValue) {
         console.log(`Counter out of sync. Actual: ${actualCount}, Counter: ${counterValue}. Reconciling...`)
-        await supabase.from("stats").upsert({
-          name: "user_counter",
-          count: actualCount,
-          updated_at: new Date().toISOString(),
-        })
+        await updateCounter(actualCount)
         setCount(actualCount)
         setIsAnimating(true)
         setTimeout(() => setIsAnimating(false), 1000)
