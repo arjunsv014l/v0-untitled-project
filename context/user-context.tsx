@@ -12,6 +12,14 @@ interface Profile {
   email: string | null
   name: string | null
   avatar_url: string | null
+  college?: string | null
+  major?: string | null
+  graduation_year?: number | null
+  bio?: string | null
+  interests?: string[] | null
+  location?: string | null
+  referral_code?: string | null
+  marketing_consent?: boolean | null
 }
 
 // Define the return type for auth operations
@@ -29,9 +37,24 @@ interface AuthResult {
 interface UserContextProps {
   user: Profile | null
   isLoading: boolean
-  register: (email: string, password: string, name: string) => Promise<AuthResult>
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    dob?: string,
+    avatar?: string | null,
+    college?: string,
+    major?: string,
+    graduationYear?: number,
+    bio?: string,
+    interests?: string[],
+    location?: string,
+    referralCode?: string,
+    marketingConsent?: boolean,
+  ) => Promise<AuthResult>
   login: (email: string, password: string) => Promise<AuthResult>
   logout: () => Promise<void>
+  updateProfile: (profileData: Partial<Profile>) => Promise<boolean>
 }
 
 // Create the context
@@ -99,6 +122,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           email: session.user.email,
           name: profileData?.name || session.user.user_metadata?.name || null,
           avatar_url: profileData?.avatar_url || session.user.user_metadata?.avatar_url || null,
+          college: profileData?.college || null,
+          major: profileData?.major || null,
+          graduation_year: profileData?.graduation_year || null,
+          bio: profileData?.bio || null,
+          interests: profileData?.interests ? profileData.interests.split(",").map((i) => i.trim()) : null,
+          location: profileData?.location || null,
+          referral_code: profileData?.referral_code || null,
+          marketing_consent: profileData?.marketing_consent || false,
         }
 
         setUser(fullProfile)
@@ -131,45 +162,101 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, [supabase])
 
   // Register function
-  const register = async (email: string, password: string, name: string): Promise<AuthResult> => {
+  const register = async (
+    email: string,
+    password: string,
+    name: string,
+    dob?: string,
+    avatar?: string | null,
+    college?: string,
+    major?: string,
+    graduationYear?: number,
+    bio?: string,
+    interests?: string[],
+    location?: string,
+    referralCode?: string,
+    marketingConsent?: boolean,
+  ): Promise<AuthResult> => {
     try {
-      // Register with Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-          },
+      // Use the atomic registration API endpoint for a complete registration flow
+      const response = await fetch("/api/auth/atomic-register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+          dob,
+          avatar,
+          college,
+          major,
+          graduationYear,
+          bio,
+          interests,
+          location,
+          referralCode,
+          marketingConsent,
+        }),
       })
 
-      if (error) {
+      // Check if the response is ok before trying to parse JSON
+      if (!response.ok) {
+        // Try to parse the error response as JSON
+        let errorMessage = "Registration failed"
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch (parseError) {
+          // If JSON parsing fails, use the status text
+          errorMessage = `Registration failed: ${response.status} ${response.statusText}`
+          console.error("Error parsing response:", parseError)
+          // Try to get the text content as fallback
+          try {
+            const textContent = await response.text()
+            console.error("Response text content:", textContent)
+            if (textContent) {
+              errorMessage = `Registration failed: ${textContent.substring(0, 100)}...`
+            }
+          } catch (textError) {
+            console.error("Error getting response text:", textError)
+          }
+        }
+
         return {
           success: false,
           error: {
-            code: error.name,
-            message: error.message,
+            code: "registration_failed",
+            message: errorMessage,
           },
         }
       }
 
-      // Create a profile record
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: data.user?.id,
-        email: email,
-        name: name,
-        created_at: new Date().toISOString(),
+      // Parse the successful response
+      const data = await response.json()
+
+      // Sign in the user after registration
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
 
-      if (profileError) {
-        console.error("Error creating profile:", profileError)
-        // Continue despite profile creation error
+      if (signInError) {
+        console.error("Error signing in after registration:", signInError)
+        // Still return success as registration worked
+        return {
+          success: true,
+          userId: data.userId,
+        }
       }
+
+      // Wait a moment for the session to be established
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       return {
         success: true,
-        userId: data.user?.id,
+        userId: data.userId,
       }
     } catch (error: any) {
       console.error("Registration error:", error)
@@ -230,6 +317,88 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   }
 
+  // Update profile function
+  const updateProfile = async (profileData: Partial<Profile>): Promise<boolean> => {
+    try {
+      if (!user) {
+        console.error("Cannot update profile: No user is logged in")
+        return false
+      }
+
+      // Prepare data for the profiles table
+      const supabaseProfileData: any = {}
+
+      if (profileData.name) supabaseProfileData.name = profileData.name
+      if (profileData.avatar_url) supabaseProfileData.avatar_url = profileData.avatar_url
+      if (profileData.college) supabaseProfileData.college = profileData.college
+      if (profileData.major) supabaseProfileData.major = profileData.major
+      if (profileData.graduation_year) supabaseProfileData.graduation_year = profileData.graduation_year
+      if (profileData.bio) supabaseProfileData.bio = profileData.bio
+      if (profileData.interests) supabaseProfileData.interests = profileData.interests.join(", ")
+      if (profileData.location) supabaseProfileData.location = profileData.location
+      if (profileData.marketing_consent !== undefined)
+        supabaseProfileData.marketing_consent = profileData.marketing_consent
+
+      supabaseProfileData.updated_at = new Date().toISOString()
+
+      // Update the profile
+      const { error } = await supabase.from("profiles").update(supabaseProfileData).eq("id", user.id)
+
+      if (error) {
+        console.error("Error updating profile:", error)
+        return false
+      }
+
+      // Update user metadata if name or avatar has changed
+      if (profileData.name || profileData.avatar_url) {
+        const { error: metadataError } = await supabase.auth.updateUser({
+          data: {
+            name: profileData.name || user.name,
+            avatar_url: profileData.avatar_url || user.avatar_url,
+          },
+        })
+
+        if (metadataError) {
+          console.error("Error updating user metadata:", metadataError)
+          // Non-critical error, continue
+        }
+      }
+
+      // Update local user state
+      setUser((prev) => (prev ? { ...prev, ...profileData } : null))
+
+      // Refetch profile data to ensure complete sync
+      const { data: updatedProfile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
+      if (!fetchError && updatedProfile) {
+        const fullProfile: Profile = {
+          id: user.id,
+          email: user.email,
+          name: updatedProfile.name || null,
+          avatar_url: updatedProfile.avatar_url || null,
+          college: updatedProfile.college || null,
+          major: updatedProfile.major || null,
+          graduation_year: updatedProfile.graduation_year || null,
+          bio: updatedProfile.bio || null,
+          interests: updatedProfile.interests ? updatedProfile.interests.split(",").map((i) => i.trim()) : null,
+          location: updatedProfile.location || null,
+          referral_code: updatedProfile.referral_code || null,
+          marketing_consent: updatedProfile.marketing_consent || false,
+        }
+        setUser(fullProfile)
+      }
+
+      return true
+    } catch (error) {
+      console.error("Update profile error:", error)
+      return false
+    }
+  }
+
   // Create the context value
   const value: UserContextProps = {
     user,
@@ -237,6 +406,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     register,
     login,
     logout,
+    updateProfile,
   }
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>

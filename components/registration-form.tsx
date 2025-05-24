@@ -1,135 +1,137 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useRouter } from "next/navigation"
-import { useUser } from "@/context/user-context"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { Loader2 } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import DoodleCard from "@/components/ui-elements/doodle-card"
 
-// Define the form schema with validation
-const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-})
-
-type FormValues = z.infer<typeof formSchema>
-
-export default function RegistrationForm() {
+const RegistrationForm = () => {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [registrationError, setRegistrationError] = useState("")
   const router = useRouter()
-  const { register } = useUser()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  // Initialize form with react-hook-form and zod validation
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-    },
-  })
+  const supabase = createClientComponentClient()
 
-  // Handle form submission
-  const onSubmit = async (data: FormValues) => {
-    setIsSubmitting(true)
-    setError(null)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (password !== confirmPassword) {
+      setRegistrationError("Passwords do not match.")
+      return
+    }
 
     try {
-      const result = await register(data.email, data.password, data.name)
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            name: `${firstName} ${lastName}`, // Store full name for dashboard
+          },
+        },
+      })
 
-      if (result.success) {
-        // Redirect to dashboard
-        router.push("/dashboard")
+      if (error) {
+        setRegistrationError(error.message)
       } else {
-        setError(result.error?.message || "Registration failed. Please try again.")
+        // Direct redirect to dashboard after successful registration
+        router.push("/dashboard")
       }
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred. Please try again.")
-    } finally {
-      setIsSubmitting(false)
+      setRegistrationError(err.message || "An unexpected error occurred.")
     }
   }
 
   return (
-    <DoodleCard className="w-full max-w-md mx-auto p-6">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold">Create Your Account</h1>
-        <p className="text-gray-600 mt-2">Join our community and get started</p>
+    <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-8">
+      {registrationError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error!</strong>
+          <span className="block sm:inline">{registrationError}</span>
+        </div>
+      )}
+      <div className="mb-4">
+        <label htmlFor="firstName" className="block text-gray-700 text-sm font-bold mb-2">
+          First Name:
+        </label>
+        <input
+          type="text"
+          id="firstName"
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          required
+        />
       </div>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input type="email" placeholder="you@example.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {error && <div className="text-red-500 text-sm">{error}</div>}
-
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Account...
-              </>
-            ) : (
-              "Create Account"
-            )}
-          </Button>
-        </form>
-      </Form>
-
-      <p className="text-center text-sm text-gray-500 mt-4">
-        Already have an account?{" "}
-        <a href="/login" className="text-blue-600 hover:underline">
-          Sign in
-        </a>
-      </p>
-    </DoodleCard>
+      <div className="mb-4">
+        <label htmlFor="lastName" className="block text-gray-700 text-sm font-bold mb-2">
+          Last Name:
+        </label>
+        <input
+          type="text"
+          id="lastName"
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          required
+        />
+      </div>
+      <div className="mb-4">
+        <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">
+          Email:
+        </label>
+        <input
+          type="email"
+          id="email"
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="mb-6">
+        <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">
+          Password:
+        </label>
+        <input
+          type="password"
+          id="password"
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+      <div className="mb-6">
+        <label htmlFor="confirmPassword" className="block text-gray-700 text-sm font-bold mb-2">
+          Confirm Password:
+        </label>
+        <input
+          type="password"
+          id="confirmPassword"
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          type="submit"
+        >
+          Register
+        </button>
+      </div>
+    </form>
   )
 }
+
+export default RegistrationForm
