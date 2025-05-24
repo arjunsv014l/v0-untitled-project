@@ -137,7 +137,9 @@ export default function RegistrationForm() {
       // Redirect after animation completes
       setTimeout(() => {
         setShowSuccessAnimation(false)
-        router.push("/dashboard?mode=edit&newUser=true")
+        router.push(
+          "https://v0-dreamclerk-design-requireme-git-db0be2-arjunsv014ls-projects.vercel.app/dashboard?mode=edit",
+        )
       }, 2500)
     } catch (error) {
       console.error("Registration error:", error)
@@ -150,7 +152,13 @@ export default function RegistrationForm() {
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
       {showSuccessAnimation ? (
-        <SuccessAnimation onComplete={() => router.push("/dashboard?mode=edit&newUser=true")} />
+        <SuccessAnimation
+          onComplete={() =>
+            router.push(
+              "https://v0-dreamclerk-design-requireme-git-db0be2-arjunsv014ls-projects.vercel.app/dashboard?mode=edit",
+            )
+          }
+        />
       ) : (
         <>
           <h1 className="text-2xl font-bold text-center mb-6">Join Dreamclerk</h1>

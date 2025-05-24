@@ -116,6 +116,22 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           return
         }
 
+        // If no profile data exists yet but we have user metadata, create a basic profile
+        if (!profileData && session.user.user_metadata) {
+          const basicProfile = {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.user_metadata?.name || null,
+            avatar_url: session.user.user_metadata?.avatar_url || null,
+            college: session.user.user_metadata?.college || null,
+            major: session.user.user_metadata?.major || null,
+            graduation_year: session.user.user_metadata?.graduation_year || null,
+          }
+
+          setUser(basicProfile)
+          return
+        }
+
         // Create a complete user profile object
         const fullProfile: Profile = {
           id: session.user.id,

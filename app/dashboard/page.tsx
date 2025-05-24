@@ -24,25 +24,19 @@ export default function DashboardPage() {
   // Check for query parameters on initial load
   useEffect(() => {
     const mode = searchParams.get("mode")
-    const isNewUser = searchParams.get("newUser") === "true"
 
     if (mode === "edit") {
       setActiveTab("edit")
 
-      // Show welcome message for new users
-      if (isNewUser) {
-        setNotification({
-          type: "success",
-          message: "Registration successful! Please complete your profile.",
-        })
+      // Show welcome message for new registrations
+      setNotification({
+        type: "success",
+        message: "Registration successful! Please complete your profile.",
+      })
 
-        // Clear the URL parameters after processing
-        setTimeout(() => {
-          router.replace("/dashboard")
-        }, 500)
-      }
+      // Don't clear URL parameters to maintain the state
     }
-  }, [searchParams, router])
+  }, [searchParams])
 
   useEffect(() => {
     if (!isLoading && !user) {

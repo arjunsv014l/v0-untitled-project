@@ -1,462 +1,201 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useUser } from "@/context/user-context"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { useEffect } from "react"
 import { useForm } from "react-hook-form"
-import { Loader2, Camera, AlertCircle, RefreshCw } from "lucide-react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import DoodleCard from "@/components/ui-elements/doodle-card"
-import { supabase } from "@/lib/supabase"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Textarea } from "@/components/ui/textarea"
+import { MultiSelect } from "@/components/multi-select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/components/ui/use-toast"
+import { useUser } from "@clerk/nextjs"
 
-// Define the form schema with validation
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  bio: z.string().optional(),
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters.",
+  }),
+  email: z.string().email({
+    message: "Invalid email address.",
+  }),
   college: z.string().optional(),
   major: z.string().optional(),
+  graduation_year: z.number().optional(),
+  bio: z.string().optional(),
+  interests: z.array(z.string()).optional(),
   location: z.string().optional(),
+  marketing_consent: z.boolean().default(false),
 })
 
-type FormValues = z.infer<typeof formSchema>
+export function ProfileEditor() {
+  const { toast } = useToast()
+  const { user } = useUser()
 
-interface ProfileEditorProps {
-  onSaved?: () => void
-  isNewUser?: boolean
-}
+  // Ensure form is populated with latest user data when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        name: user.name || "",
+        email: user.email || "",
+        college: user.college || "",
+        major: user.major || "",
+        graduation_year: user.graduation_year || undefined,
+        bio: user.bio || "",
+        interests: user.interests || [],
+        location: user.location || "",
+        marketing_consent: user.marketing_consent || false,
+      })
+    }
+  }, [user, form])
 
-export default function ProfileEditor({ onSaved, isNewUser = false }: ProfileEditorProps) {
-  const { user, isLoading, updateProfile } = useUser()
-  const [isSaving, setIsSaving] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [message, setMessage] = useState<{ type: string; text: string } | null>(null)
-  const [avatar, setAvatar] = useState<File | null>(null)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [formKey, setFormKey] = useState(0) // Add key to force re-render
-  const [loadError, setLoadError] = useState<string | null>(null)
-
-  // Initialize form with react-hook-form and zod validation
-  const form = useForm<FormValues>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: user?.name || "",
-      bio: user?.bio || "",
-      college: user?.college || "",
-      major: user?.major || "",
-      location: user?.location || "",
+      name: "",
+      email: "",
     },
   })
 
-  // Load user data into form when available or when user changes
-  useEffect(() => {
-    const loadUserData = async () => {
-      setLoadError(null)
-
-      if (!user) return
-
-      try {
-        // For new users, we might want to refresh the profile data from the server
-        // to ensure we have the most up-to-date information
-        if (isNewUser) {
-          setIsRefreshing(true)
-
-          // Fetch the latest profile data from Supabase
-          const { data: profileData, error: profileError } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single()
-
-          if (profileError) {
-            throw new Error(`Failed to load profile data: ${profileError.message}`)
-          }
-
-          // Reset form with the latest data
-          form.reset({
-            name: profileData?.name || user.name || "",
-            bio: profileData?.bio || user.bio || "",
-            college: profileData?.college || user.college || "",
-            major: profileData?.major || user.major || "",
-            location: profileData?.location || user.location || "",
-          })
-
-          // Update avatar preview
-          if (profileData?.avatar_url) {
-            setAvatarPreview(profileData.avatar_url)
-          } else if (user.avatar_url) {
-            setAvatarPreview(user.avatar_url)
-          } else {
-            setAvatarPreview(null)
-          }
-        } else {
-          // Regular update for existing users
-          form.reset({
-            name: user.name || "",
-            bio: user.bio || "",
-            college: user.college || "",
-            major: user.major || "",
-            location: user.location || "",
-          })
-
-          // Update avatar preview
-          if (user.avatar_url) {
-            setAvatarPreview(user.avatar_url)
-          } else {
-            setAvatarPreview(null)
-          }
-        }
-
-        // Clear any existing file selection
-        setAvatar(null)
-
-        // Force form re-render by updating key
-        setFormKey((prev) => prev + 1)
-      } catch (error: any) {
-        console.error("Error loading profile data:", error)
-        setLoadError(error.message || "Failed to load profile data. Please try refreshing the page.")
-      } finally {
-        setIsRefreshing(false)
-      }
-    }
-
-    loadUserData()
-  }, [user, form, isNewUser])
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      setAvatar(file)
-
-      // Create preview
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setAvatarPreview(e.target.result as string)
-        }
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  // Handle form submission
-  const onSubmit = async (data: FormValues) => {
-    if (!user) return
-
-    setIsSaving(true)
-    setMessage(null)
-
-    try {
-      // Upload avatar if changed
-      let avatarUrl = user.avatar_url
-      if (avatar) {
-        // Delete old avatar if exists
-        if (user.avatar_url) {
-          const oldPath = user.avatar_url.split("/").slice(-2).join("/")
-          await supabase.storage.from("avatars").remove([oldPath])
-        }
-
-        const fileName = `${user.id}/${Date.now()}_${avatar.name}`
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(fileName, avatar, {
-            upsert: true,
-          })
-
-        if (uploadError) {
-          throw new Error(`Avatar upload failed: ${uploadError.message}`)
-        }
-
-        // Get public URL
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("avatars").getPublicUrl(fileName)
-
-        avatarUrl = publicUrl
-      }
-
-      // Update profile
-      const success = await updateProfile({
-        name: data.name,
-        bio: data.bio || "",
-        college: data.college || "",
-        major: data.major || "",
-        location: data.location || "",
-        avatar_url: avatarUrl,
-      })
-
-      if (success) {
-        setMessage({
-          type: "success",
-          text: "Profile updated successfully!",
-        })
-
-        // Clear the file input after successful save
-        setAvatar(null)
-
-        // Call onSaved callback if provided
-        if (onSaved) {
-          setTimeout(() => {
-            onSaved()
-          }, 1500)
-        }
-      } else {
-        setMessage({
-          type: "error",
-          text: "Failed to update profile. Please try again.",
-        })
-      }
-    } catch (error: any) {
-      console.error("Error updating profile:", error)
-      setMessage({
-        type: "error",
-        text: error.message || "Failed to update profile. Please try again.",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleRefresh = async () => {
-    if (!user) return
-
-    setIsRefreshing(true)
-    setLoadError(null)
-
-    try {
-      // Fetch the latest profile data from Supabase
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single()
-
-      if (profileError) {
-        throw new Error(`Failed to refresh profile data: ${profileError.message}`)
-      }
-
-      // Reset form with the latest data
-      form.reset({
-        name: profileData?.name || "",
-        bio: profileData?.bio || "",
-        college: profileData?.college || "",
-        major: profileData?.major || "",
-        location: profileData?.location || "",
-      })
-
-      // Update avatar preview
-      if (profileData?.avatar_url) {
-        setAvatarPreview(profileData.avatar_url)
-      } else {
-        setAvatarPreview(null)
-      }
-
-      // Clear any existing file selection
-      setAvatar(null)
-
-      // Force form re-render by updating key
-      setFormKey((prev) => prev + 1)
-
-      setMessage({
-        type: "success",
-        text: "Profile data refreshed successfully",
-      })
-    } catch (error: any) {
-      console.error("Error refreshing profile data:", error)
-      setLoadError(error.message || "Failed to refresh profile data. Please try again.")
-    } finally {
-      setIsRefreshing(false)
-    }
-  }
-
-  if (isLoading || isRefreshing) {
-    return (
-      <div className="flex flex-col justify-center items-center py-12 space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-        <p className="text-gray-600">{isRefreshing ? "Refreshing profile data..." : "Loading profile..."}</p>
-      </div>
-    )
-  }
-
-  if (loadError) {
-    return (
-      <div className="py-8">
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
-        <div className="flex justify-center">
-          <Button onClick={handleRefresh} variant="outline">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Try Again
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Please log in to edit your profile.</p>
-      </div>
-    )
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    // Do something with the form values.
+    // ✅ This will be type-safe and validated.
+    console.log(values)
+    toast({
+      title: "You submitted the following values:",
+      description: (
+        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4 font-mono text-white">
+          <code className="block">{JSON.stringify(values, null, 2)}</code>
+        </pre>
+      ),
+    })
   }
 
   return (
-    <DoodleCard className="p-6" key={formKey}>
-      {isNewUser && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
-          <h3 className="font-medium text-lg mb-2">Welcome to Dreamclerk!</h3>
-          <p>Please take a moment to complete your profile information below.</p>
-        </div>
-      )}
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Avatar Upload */}
-          <div className="text-center mb-4">
-            <div className="relative inline-block">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-black bg-gray-100 mx-auto">
-                {avatarPreview ? (
-                  <img src={avatarPreview || "/placeholder.svg"} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">
-                    {user.name?.charAt(0).toUpperCase() || "?"}
-                  </div>
-                )}
-              </div>
-              <label
-                htmlFor="avatar-upload"
-                className="absolute bottom-0 right-0 bg-white rounded-full p-2 border-2 border-black cursor-pointer hover:bg-gray-50 transition-colors"
-              >
-                <Camera className="h-4 w-4" />
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </label>
-            </div>
-          </div>
-
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="bio"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Bio</FormLabel>
-                <FormControl>
-                  <textarea
-                    className="w-full px-3 py-2 border-2 border-black rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                    rows={3}
-                    placeholder="Tell us about yourself..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="college"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>College/University</FormLabel>
-                  <FormControl>
-                    <Input placeholder="University name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="major"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Major/Field of Study</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your field of study" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location</FormLabel>
-                <FormControl>
-                  <Input placeholder="City, Country" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {message && (
-            <div
-              className={`p-3 rounded-lg ${
-                message.type === "error" ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"
-              }`}
-            >
-              {message.text}
-            </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Your Name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-
-          <div className="flex justify-end gap-3">
-            {/* Add a refresh button to manually sync data */}
-            <Button type="button" variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-              {isRefreshing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Refresh
-            </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Profile"
-              )}
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </DoodleCard>
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="shadcn@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="college"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>College</FormLabel>
+              <FormControl>
+                <Input placeholder="University of Example" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="major"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Major</FormLabel>
+              <FormControl>
+                <Input placeholder="Computer Science" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="graduation_year"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Graduation Year</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="2023" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="bio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Bio</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Tell us a little bit about yourself" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="interests"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Interests</FormLabel>
+              <FormControl>
+                <MultiSelect {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="location"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Location</FormLabel>
+              <FormControl>
+                <Input placeholder="New York, NY" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="marketing_consent"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Marketing Consent</FormLabel>
+                <FormDescription>Receive occasional updates about products and services.</FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+        <Button type="submit">Submit</Button>
+      </form>
+    </Form>
   )
 }
