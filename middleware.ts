@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 
+// Add debug logging to the middleware to help diagnose issues
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
@@ -10,6 +11,9 @@ export async function middleware(req: NextRequest) {
   const {
     data: { session },
   } = await supabase.auth.getSession()
+
+  // Debug log
+  console.log(`Middleware: Checking path ${req.nextUrl.pathname}, session exists: ${!!session}`)
 
   // Check if the request is for the dashboard or any of its subpages
   if (
@@ -21,20 +25,24 @@ export async function middleware(req: NextRequest) {
   ) {
     // If no session, redirect to login
     if (!session) {
+      console.log("Middleware: No session, redirecting to login")
       return NextResponse.redirect(new URL("/login", req.url))
     }
 
     // Check if profile is complete for the social feed
     if (req.nextUrl.pathname.startsWith("/social")) {
       // Fetch user profile to check completion status
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from("profiles")
         .select("is_profile_complete")
         .eq("id", session.user.id)
         .single()
 
+      console.log("Middleware: Profile check for social:", profile, error)
+
       // If profile is not complete, redirect to profile completion page
       if (!profile || !profile.is_profile_complete) {
+        console.log("Middleware: Profile not complete, redirecting to profile completion")
         return NextResponse.redirect(new URL("/profile/complete", req.url))
       }
     }
@@ -43,14 +51,17 @@ export async function middleware(req: NextRequest) {
   // Redirect profile completion to dashboard for users who have already completed their profile
   if (req.nextUrl.pathname.startsWith("/profile/complete")) {
     if (session) {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from("profiles")
         .select("is_profile_complete")
         .eq("id", session.user.id)
         .single()
 
+      console.log("Middleware: Profile check for completion page:", profile, error)
+
       // If profile is already complete, redirect to dashboard
       if (profile && profile.is_profile_complete) {
+        console.log("Middleware: Profile already complete, redirecting to dashboard")
         return NextResponse.redirect(new URL("/dashboard", req.url))
       }
     }

@@ -21,6 +21,32 @@ import DoodleButton from "@/components/ui-elements/doodle-button"
 const CURRENT_YEAR = new Date().getFullYear()
 const GRADUATION_YEARS = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR + i)
 
+// Debug function to check if a user exists in Supabase
+async function checkUserExists(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, name, is_profile_complete")
+      .eq("id", userId)
+      .single()
+
+    if (error) {
+      console.error("Error checking user:", error)
+      return { exists: false, error: error.message }
+    }
+
+    return { exists: !!data, data, error: null }
+  } catch (err: any) {
+    console.error("Exception checking user:", err)
+    return { exists: false, error: err.message }
+  }
+}
+
+// Debug function to log all form data
+function logFormData(data: any) {
+  console.log("Form data being submitted:", JSON.stringify(data, null, 2))
+}
+
 export default function EnhancedProfileCompletion() {
   const { user } = useUser()
   const router = useRouter()
@@ -173,46 +199,41 @@ export default function EnhancedProfileCompletion() {
     setSuccess(null)
 
     try {
-      console.log("Starting profile submission process...")
+      // Debug: Check if user exists in database
+      console.log("Starting profile update for user ID:", user.id)
+      const userCheck = await checkUserExists(user.id)
+      console.log("User check result:", userCheck)
 
-      // Validate required fields
-      if (!formData.name.trim()) {
-        throw new Error("Name is required")
+      if (!userCheck.exists) {
+        throw new Error(`User profile not found in database. Please contact support.`)
       }
 
       // Upload avatar if provided
       let avatarUrl = avatarPreview
       if (avatar) {
         console.log("Uploading avatar...")
-        try {
-          const fileName = `${user.id}/${Date.now()}_${avatar.name}`
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from("avatars")
-            .upload(fileName, avatar, {
-              upsert: true,
-            })
+        const fileName = `${user.id}/${Date.now()}_${avatar.name}`
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(fileName, avatar, {
+            upsert: true,
+          })
 
-          if (uploadError) {
-            console.error("Avatar upload error:", uploadError)
-            throw new Error(`Avatar upload failed: ${uploadError.message}`)
-          }
-
-          // Get public URL
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("avatars").getPublicUrl(fileName)
-
-          avatarUrl = publicUrl
-          console.log("Avatar uploaded successfully:", publicUrl)
-        } catch (avatarError: any) {
-          console.error("Avatar processing error:", avatarError)
-          // Continue without avatar rather than failing the whole submission
-          setError(`Avatar upload failed: ${avatarError.message}. Profile will be saved without a new avatar.`)
+        if (uploadError) {
+          console.error("Avatar upload error:", uploadError)
+          throw new Error(`Failed to upload avatar: ${uploadError.message}`)
         }
+
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("avatars").getPublicUrl(fileName)
+
+        avatarUrl = publicUrl
+        console.log("Avatar uploaded successfully:", publicUrl)
       }
 
       // Convert interests and skills to arrays
-      console.log("Processing form data...")
       const interests = formData.interests
         .split(",")
         .map((item) => item.trim())
@@ -223,8 +244,8 @@ export default function EnhancedProfileCompletion() {
         .map((item) => item.trim())
         .filter(Boolean)
 
-      // Prepare profile data
-      const profileData = {
+      // Prepare update data
+      const updateData = {
         name: formData.name,
         bio: formData.bio,
         college: formData.college,
@@ -237,44 +258,44 @@ export default function EnhancedProfileCompletion() {
         privacy_settings: formData.privacySettings,
         marketing_consent: formData.marketingConsent,
         profile_visibility: formData.profileVisibility,
-        is_profile_complete: true,
+        avatar_url: avatarUrl,
+        is_profile_complete: true, // Set profile as complete
         updated_at: new Date().toISOString(),
       }
 
-      // Only update avatar if we have one
-      if (avatarUrl) {
-        profileData.avatar_url = avatarUrl
-      }
-
-      console.log("Submitting profile data to Supabase:", profileData)
+      // Log the data being sent to Supabase
+      logFormData(updateData)
 
       // Update profile in Supabase
-      const { data, error } = await supabase.from("profiles").update(profileData).eq("id", user.id).select()
+      console.log("Updating profile in Supabase...")
+      const { data, error } = await supabase.from("profiles").update(updateData).eq("id", user.id).select()
 
       if (error) {
         console.error("Supabase update error:", error)
-        throw new Error(`Profile update failed: ${error.message}`)
+        throw new Error(`Failed to update profile: ${error.message}`)
       }
 
       console.log("Profile updated successfully:", data)
       setSuccess("Profile completed successfully!")
 
-      // Also update the registration record if it exists
-      try {
-        const { error: regError } = await supabase
-          .from("registrations")
-          .update({
-            completed_profile: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("user_id", user.id)
+      // Double-check that the profile was marked as complete
+      const verifyUpdate = await checkUserExists(user.id)
+      console.log("Verification after update:", verifyUpdate)
 
-        if (regError) {
-          console.warn("Could not update registration record:", regError)
+      if (!verifyUpdate.data?.is_profile_complete) {
+        console.warn("Profile was not marked as complete. Attempting direct update...")
+
+        // Try a direct update of just the is_profile_complete field
+        const { error: completeError } = await supabase
+          .from("profiles")
+          .update({ is_profile_complete: true })
+          .eq("id", user.id)
+
+        if (completeError) {
+          console.error("Failed to mark profile as complete:", completeError)
+        } else {
+          console.log("Profile marked as complete in second attempt")
         }
-      } catch (regUpdateError) {
-        console.warn("Error updating registration:", regUpdateError)
-        // Non-critical, continue
       }
 
       // Increment user counter if this is a new profile completion
@@ -283,16 +304,22 @@ export default function EnhancedProfileCompletion() {
         console.log("User counter incremented")
       } catch (counterError) {
         console.error("Error incrementing counter:", counterError)
-        // Non-critical, continue
       }
 
       // Wait a moment to show success message
+      console.log("Preparing to redirect to dashboard...")
       setTimeout(() => {
-        console.log("Redirecting to dashboard...")
-        router.push("/dashboard")
+        console.log("Redirecting to dashboard now")
+        window.location.href = "/dashboard" // Use direct navigation as a fallback
+        // Also try the router
+        try {
+          router.push("/dashboard")
+        } catch (routerError) {
+          console.error("Router navigation failed:", routerError)
+        }
       }, 1500)
     } catch (error: any) {
-      console.error("Profile submission error:", error)
+      console.error("Profile update error:", error)
       setError(error.message || "Failed to update profile. Please try again.")
     } finally {
       setIsLoading(false)
