@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useUser } from "@/context/user-context"
 import { Loader2 } from "lucide-react"
 import ProfileView from "@/components/profile/profile-view"
@@ -11,7 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 export default function DashboardPage() {
   const { user, isLoading } = useUser()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState("view")
+  const searchParams = useSearchParams()
+  const defaultTab = searchParams.get("tab") || "view"
+  const [activeTab, setActiveTab] = useState(defaultTab)
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
@@ -48,7 +50,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Profile Tabs */}
-      <Tabs defaultValue="view" value={activeTab} onValueChange={setActiveTab} className="w-full" key={refreshKey}>
+      <Tabs
+        defaultValue={defaultTab}
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+        key={refreshKey}
+      >
         <TabsList className="grid w-full grid-cols-2 mb-8">
           <TabsTrigger value="view">View Profile</TabsTrigger>
           <TabsTrigger value="edit">Edit Profile</TabsTrigger>
