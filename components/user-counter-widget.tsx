@@ -3,41 +3,74 @@
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Users } from "lucide-react"
-import { db } from "@/lib/firebase"
-import { doc, getDoc, updateDoc, increment, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore"
+import { supabase } from "@/lib/supabase"
 
-// Simulated counter data
-const INITIAL_COUNT = 500
-const DAILY_INCREASE_RATE = 15 // New users per day on average
+// Base count value - we treat this as "zero"
+const BASE_COUNT = 500
+
+export async function getUserCountFromSupabase() {
+  try {
+    // Get the actual registration count from the database
+    const { count: registrationCount, error: countError } = await supabase
+      .from("registrations")
+      .select("*", { count: "exact", head: true })
+
+    if (countError) {
+      console.error("Error getting registration count:", countError)
+      return BASE_COUNT // Default fallback value
+    }
+
+    // Calculate the counter value based on BASE_COUNT + actual registrations
+    const actualCount = registrationCount || 0
+    return BASE_COUNT + actualCount
+  } catch (error) {
+    console.error("Error in getUserCountFromSupabase:", error)
+    return BASE_COUNT
+  }
+}
 
 export async function incrementUserCount() {
   try {
-    // Update the counter in Firestore
-    const counterRef = doc(db, "stats", "userCounter")
+    // Check if we're online
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      console.warn("⚠️ Offline: Using local storage for counter increment")
+      // Store in local storage that we need to increment when back online
+      const pendingIncrements = Number.parseInt(localStorage.getItem("pendingCounterIncrements") || "0") + 1
+      localStorage.setItem("pendingCounterIncrements", pendingIncrements.toString())
 
-    // Get the document first to check if it exists
-    const counterDoc = await getDoc(counterRef)
+      // Get current local count and increment it
+      const currentLocalCount = Number.parseInt(localStorage.getItem("userCount") || BASE_COUNT.toString())
+      const newCount = currentLocalCount + 1
+      localStorage.setItem("userCount", newCount.toString())
 
-    if (counterDoc.exists()) {
-      // Update existing counter
-      await updateDoc(counterRef, {
-        count: increment(1),
-        lastUpdated: serverTimestamp(),
-      })
-    } else {
-      // Create counter document if it doesn't exist
-      await setDoc(counterRef, {
-        count: INITIAL_COUNT + 1,
-        createdAt: serverTimestamp(),
-        lastUpdated: serverTimestamp(),
-      })
+      // Dispatch event to update UI
+      window.dispatchEvent(new CustomEvent("userCountUpdated", { detail: { count: newCount } }))
+      return newCount
     }
 
-    // Get the updated count
-    const updatedDoc = await getDoc(counterRef)
-    const newCount = updatedDoc.data()?.count || INITIAL_COUNT + 1
+    // Get the current registration count directly from the database
+    const { count: registrationCount, error: countError } = await supabase
+      .from("registrations")
+      .select("*", { count: "exact", head: true })
 
-    // Save to localStorage as a fallback
+    if (countError) {
+      console.error("Error getting registration count:", countError)
+      throw countError
+    }
+
+    // Calculate the counter value based on BASE_COUNT + actual registrations
+    const actualCount = registrationCount || 0
+    const newCount = BASE_COUNT + actualCount
+
+    // Update the counter in Supabase stats table to match the actual registration count
+    const { error: updateError } = await supabase.from("stats").update({ count: newCount }).eq("name", "user_counter")
+
+    if (updateError) {
+      console.error("Error updating user count:", updateError)
+      throw updateError
+    }
+
+    // Update local storage for offline fallback
     localStorage.setItem("userCount", newCount.toString())
 
     // Dispatch a custom event to notify all counter instances
@@ -49,100 +82,125 @@ export async function incrementUserCount() {
   } catch (error) {
     console.error("Error incrementing user count:", error)
 
-    // Fallback to localStorage if Firebase fails
-    const currentCount = Number.parseInt(localStorage.getItem("userCount") || INITIAL_COUNT.toString())
-    const newCount = currentCount + 1
+    // Fallback to local storage
+    const currentLocalCount = Number.parseInt(localStorage.getItem("userCount") || BASE_COUNT.toString())
+    const newCount = currentLocalCount + 1
     localStorage.setItem("userCount", newCount.toString())
 
-    // Still dispatch the event with the fallback count
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("userCountUpdated", { detail: { count: newCount } }))
-    }
+    // Dispatch event to update UI
+    window.dispatchEvent(new CustomEvent("userCountUpdated", { detail: { count: newCount } }))
 
     return newCount
   }
 }
 
 export default function UserCounterWidget() {
-  const [count, setCount] = useState(INITIAL_COUNT)
+  const [count, setCount] = useState(BASE_COUNT)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const pathRef = useRef<SVGPathElement>(null)
-  const unsubscribeRef = useRef<() => void | null>(null)
+  const unsubscribeRef = useRef<(() => void) | null>(null)
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Function to refresh the counter from the database
+  const refreshCounter = async () => {
+    try {
+      // Get the actual registration count from the database
+      const { count: registrationCount, error: countError } = await supabase
+        .from("registrations")
+        .select("*", { count: "exact", head: true })
+
+      if (countError) {
+        console.error("Error getting registration count:", countError)
+        return
+      }
+
+      // Calculate the counter value based on BASE_COUNT + actual registrations
+      const actualCount = registrationCount || 0
+      const dbCount = BASE_COUNT + actualCount
+
+      // Also update the stats table to ensure consistency
+      await supabase.from("stats").update({ count: dbCount }).eq("name", "user_counter")
+
+      // Only update if the count has changed
+      if (dbCount !== count) {
+        console.log(`Counter refreshed from database: ${dbCount}`)
+        setCount(dbCount)
+        setIsAnimating(true)
+        setTimeout(() => setIsAnimating(false), 1000)
+        localStorage.setItem("userCount", dbCount.toString())
+      }
+    } catch (error) {
+      console.error("Error refreshing counter:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     // Set up real-time listener for counter updates
     const setupRealtimeCounter = async () => {
       try {
-        const counterRef = doc(db, "stats", "userCounter")
+        setIsLoading(true)
 
         // First, try to get the initial count
-        const initialSnapshot = await getDoc(counterRef)
+        await refreshCounter()
 
-        if (initialSnapshot.exists()) {
-          const initialCount = initialSnapshot.data().count
-          setCount(initialCount)
-          localStorage.setItem("userCount", initialCount.toString())
-        } else {
-          // If document doesn't exist, create it with INITIAL_COUNT (500)
-          setCount(INITIAL_COUNT)
-
-          await setDoc(counterRef, {
-            count: INITIAL_COUNT,
-            createdAt: serverTimestamp(),
-            lastUpdated: serverTimestamp(),
-          })
-
-          localStorage.setItem("userCount", INITIAL_COUNT.toString())
-        }
-
-        // Set up real-time listener for future updates
-        const unsubscribe = onSnapshot(
-          counterRef,
-          (snapshot) => {
-            if (snapshot.exists()) {
-              const newCount = snapshot.data().count
-              setCount(newCount)
+        // Set up real-time subscription
+        const channel = supabase
+          .channel("stats_changes")
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "stats", filter: "name=eq.user_counter" },
+            (payload) => {
+              console.log("Real-time counter update received:", payload)
+              const newCount = payload.new.count
+              // Ensure the count is never less than BASE_COUNT
+              const finalCount = newCount < BASE_COUNT ? BASE_COUNT : newCount
+              setCount(finalCount)
               setIsAnimating(true)
               setTimeout(() => setIsAnimating(false), 1000)
-              localStorage.setItem("userCount", newCount.toString())
-            }
-          },
-          (error) => {
-            console.error("Real-time counter error:", error)
-          },
-        )
+              localStorage.setItem("userCount", finalCount.toString())
+            },
+          )
+          .subscribe((status) => {
+            console.log("Supabase channel status:", status)
+          })
 
-        unsubscribeRef.current = unsubscribe
+        // Store unsubscribe function
+        unsubscribeRef.current = () => {
+          console.log("Unsubscribing from Supabase channel")
+          supabase.removeChannel(channel)
+        }
+
+        // Set up a periodic refresh as a fallback
+        refreshIntervalRef.current = setInterval(refreshCounter, 30000) // Refresh every 30 seconds
       } catch (error) {
         console.error("Error setting up real-time counter:", error)
         fallbackToLocalStorage()
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    // Helper function to calculate initial count
-    const calculateInitialCount = () => {
-      const launchDate = new Date("2023-01-01")
-      const today = new Date()
-      const daysSinceLaunch = Math.floor((today.getTime() - launchDate.getTime()) / (1000 * 60 * 60 * 24))
-      return INITIAL_COUNT + daysSinceLaunch * DAILY_INCREASE_RATE
-    }
-
-    // Fallback to localStorage if Firebase fails
+    // Fallback to localStorage if Supabase fails
     const fallbackToLocalStorage = () => {
       const storedCount = localStorage.getItem("userCount")
       if (storedCount) {
         setCount(Number.parseInt(storedCount))
       } else {
-        const calculatedCount = calculateInitialCount()
-        setCount(calculatedCount)
-        localStorage.setItem("userCount", calculatedCount.toString())
+        setCount(BASE_COUNT)
+        localStorage.setItem("userCount", BASE_COUNT.toString())
       }
+      setIsLoading(false)
     }
 
     // Listen for custom events from other counter instances
     const handleCountUpdate = (event: CustomEvent) => {
       const newCount = event.detail.count
-      setCount(newCount)
+      // Ensure the count is never less than BASE_COUNT
+      const finalCount = newCount < BASE_COUNT ? BASE_COUNT : newCount
+      setCount(finalCount)
       setIsAnimating(true)
       setTimeout(() => setIsAnimating(false), 1000)
     }
@@ -159,6 +217,62 @@ export default function UserCounterWidget() {
       if (unsubscribeRef.current) {
         unsubscribeRef.current()
       }
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current)
+      }
+    }
+  }, [])
+
+  // Handle online/offline status changes
+  useEffect(() => {
+    const handleOnline = async () => {
+      console.log("🌐 Back online: Syncing counter data")
+
+      // Instead of applying pending increments, get the actual registration count
+      const { count: registrationCount, error: countError } = await supabase
+        .from("registrations")
+        .select("*", { count: "exact", head: true })
+
+      if (countError) {
+        console.error("Error getting registration count:", countError)
+        return
+      }
+
+      // Calculate the counter value based on BASE_COUNT + actual registrations
+      const actualCount = registrationCount || 0
+      const newCount = BASE_COUNT + actualCount
+
+      // Update the stats table
+      await supabase.from("stats").update({ count: newCount }).eq("name", "user_counter")
+
+      // Clear pending increments since we're now in sync with the database
+      localStorage.setItem("pendingCounterIncrements", "0")
+
+      // Update local storage and UI
+      localStorage.setItem("userCount", newCount.toString())
+      setCount(newCount)
+    }
+
+    window.addEventListener("online", handleOnline)
+
+    return () => {
+      window.removeEventListener("online", handleOnline)
+    }
+  }, [])
+
+  // Force a refresh when the component becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        console.log("Page became visible, refreshing counter")
+        refreshCounter()
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
     }
   }, [])
 
@@ -185,34 +299,62 @@ export default function UserCounterWidget() {
       </svg>
 
       {/* Content */}
-      <div className="flex items-center px-4 py-2 relative z-10 bg-gradient-to-r from-green-100 to-green-50 rounded-md">
+      <div className="flex items-center px-4 py-2 relative z-10 bg-gradient-to-r from-blue-100 to-blue-50 rounded-md border border-blue-200 shadow-sm">
         <motion.div
           animate={isAnimating ? { scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] } : {}}
           transition={{ duration: 0.5 }}
-          className="mr-3 p-2 bg-green-500 rounded-full border-2 border-green-600 shadow-lg"
+          className="relative mr-3"
         >
-          <Users className="h-4 w-4 text-white" />
+          <div className="p-2 bg-blue-500 rounded-full border-2 border-blue-600 shadow-lg">
+            <Users className="h-4 w-4 text-white" />
+          </div>
+          {/* Pulsing effect for "active" indication */}
+          <motion.div
+            className="absolute inset-0 rounded-full bg-blue-400 opacity-50"
+            animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+          />
         </motion.div>
 
         <div className="flex flex-col">
           <AnimatePresence mode="popLayout">
-            <motion.span
-              key={count}
-              initial={{ opacity: 0, y: -10, rotate: -5 }}
-              animate={{ opacity: 1, y: 0, rotate: 0 }}
-              exit={{ opacity: 0, y: 10, rotate: 5 }}
-              transition={{ duration: 0.3 }}
-              className="font-bold text-lg text-green-800 leading-tight"
-              style={{
-                fontFamily: "system-ui, sans-serif",
-                textShadow: "0px 1px 1px rgba(255,255,255,0.5)",
-              }}
-            >
-              {count.toLocaleString()}
-            </motion.span>
+            {isLoading ? (
+              <motion.span
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="font-bold text-lg text-blue-800 leading-tight"
+              >
+                Loading...
+              </motion.span>
+            ) : (
+              <motion.span
+                key={count}
+                initial={{ opacity: 0, y: -10, rotate: -5 }}
+                animate={{ opacity: 1, y: 0, rotate: 0 }}
+                exit={{ opacity: 0, y: 10, rotate: 5 }}
+                transition={{ duration: 0.3 }}
+                className="font-bold text-lg text-blue-800 leading-tight"
+                style={{
+                  fontFamily: "system-ui, sans-serif",
+                  textShadow: "0px 1px 1px rgba(255,255,255,0.5)",
+                }}
+              >
+                {count.toLocaleString()}
+              </motion.span>
+            )}
           </AnimatePresence>
-          <span className="text-xs text-green-700 font-medium" style={{ fontFamily: "system-ui, sans-serif" }}>
-            students joined
+          <span
+            className="text-xs text-blue-700 font-medium flex items-center"
+            style={{ fontFamily: "system-ui, sans-serif" }}
+          >
+            <motion.div
+              className="w-2 h-2 bg-green-500 rounded-full mr-1"
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
+            />
+            active now
           </span>
         </div>
       </div>

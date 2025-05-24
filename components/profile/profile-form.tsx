@@ -4,9 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useUser } from "@/context/user-context"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
-import { storage } from "@/lib/firebase"
-import { getDocument, saveUserProfile } from "@/lib/firestore-helpers"
+import { supabase } from "@/lib/supabase"
 import DoodleButton from "@/components/ui-elements/doodle-button"
 import DoodleCard from "@/components/ui-elements/doodle-card"
 import { Input } from "@/components/ui/input"
@@ -42,30 +40,71 @@ export default function ProfileForm() {
 
       setIsLoading(true)
       try {
-        const { data, error } = await getDocument("users", user.id)
+        // Try to fetch the profile
+        const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", user.id).single()
 
-        if (error) {
-          throw new Error(error)
-        }
+        if (error && error.code === "PGRST116") {
+          // Profile doesn't exist, create it
+          console.log("Profile not found, creating new profile...")
 
-        if (data) {
+          const { data: newProfile, error: createError } = await supabase
+            .from("profiles")
+            .insert({
+              id: user.id,
+              email: user.email,
+              name: user.name || user.email?.split("@")[0] || "",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .select()
+            .single()
+
+          if (createError) {
+            console.error("Error creating profile:", createError)
+            setMessage({
+              type: "error",
+              text: "Failed to create profile. Please try again.",
+            })
+            return
+          }
+
+          // Set form data with the new profile
           setFormData({
-            name: data.name || user.name || "",
-            bio: data.bio || "",
-            college: data.college || "",
-            major: data.major || "",
-            graduationYear: data.graduationYear || "",
-            location: data.location || "",
-            interests: data.interests || "",
+            name: newProfile.name || "",
+            bio: "",
+            college: "",
+            major: "",
+            graduationYear: "",
+            location: "",
+            interests: "",
             socialLinks: {
-              linkedin: data.socialLinks?.linkedin || "",
-              twitter: data.socialLinks?.twitter || "",
-              instagram: data.socialLinks?.instagram || "",
+              linkedin: "",
+              twitter: "",
+              instagram: "",
+            },
+          })
+        } else if (error) {
+          // Other error
+          throw error
+        } else if (profile) {
+          // Profile exists, populate form
+          setFormData({
+            name: profile.name || user.name || "",
+            bio: profile.bio || "",
+            college: profile.college || "",
+            major: profile.major || "",
+            graduationYear: profile.graduation_year || "",
+            location: profile.location || "",
+            interests: profile.interests || "",
+            socialLinks: {
+              linkedin: profile.social_links?.linkedin || "",
+              twitter: profile.social_links?.twitter || "",
+              instagram: profile.social_links?.instagram || "",
             },
           })
 
-          if (data.avatar) {
-            setAvatarPreview(data.avatar)
+          if (profile.avatar_url) {
+            setAvatarPreview(profile.avatar_url)
           }
         }
       } catch (error) {
@@ -127,32 +166,60 @@ export default function ProfileForm() {
 
     try {
       // Upload avatar if changed
-      let avatarUrl = user.avatar
+      let avatarUrl = avatarPreview
       if (avatar) {
-        const avatarRef = ref(storage, `profileImages/${user.id}/${Date.now()}_${avatar.name}`)
-        await uploadBytes(avatarRef, avatar)
-        avatarUrl = await getDownloadURL(avatarRef)
+        const fileName = `${user.id}/${Date.now()}_${avatar.name}`
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(fileName, avatar, {
+            upsert: true,
+          })
+
+        if (uploadError) {
+          throw new Error(`Avatar upload failed: ${uploadError.message}`)
+        }
+
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("avatars").getPublicUrl(fileName)
+
+        avatarUrl = publicUrl
       }
 
-      // Update user profile in Firestore
-      const { error } = await saveUserProfile(user.id, {
-        ...formData,
-        avatar: avatarUrl,
-      })
+      // Update user profile in Supabase using upsert
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert({
+          id: user.id,
+          email: user.email,
+          name: formData.name,
+          bio: formData.bio,
+          college: formData.college,
+          major: formData.major,
+          graduation_year: formData.graduationYear,
+          location: formData.location,
+          interests: formData.interests,
+          social_links: formData.socialLinks,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
 
       if (error) {
-        throw new Error(error)
+        throw error
       }
 
       setMessage({
         type: "success",
         text: "Profile updated successfully!",
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating profile:", error)
       setMessage({
         type: "error",
-        text: "Failed to update profile. Please try again.",
+        text: error.message || "Failed to update profile. Please try again.",
       })
     } finally {
       setIsSaving(false)
@@ -183,7 +250,7 @@ export default function ProfileForm() {
             </div>
             <label
               htmlFor="avatar-upload"
-              className="absolute bottom-0 right-0 bg-white rounded-full p-2 border-2 border-black cursor-pointer"
+              className="absolute bottom-0 right-0 bg-white rounded-full p-2 border-2 border-black cursor-pointer hover:bg-gray-50 transition-colors"
             >
               <Camera className="h-4 w-4" />
               <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -206,6 +273,7 @@ export default function ProfileForm() {
               onChange={handleInputChange}
               rows={3}
               className="w-full px-4 py-2 border-2 border-black rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
+              placeholder="Tell us about yourself..."
             />
           </div>
 
@@ -218,12 +286,20 @@ export default function ProfileForm() {
                 value={formData.college}
                 onChange={handleInputChange}
                 className="mt-1"
+                placeholder="Your university name"
               />
             </div>
 
             <div>
               <Label htmlFor="major">Major/Field of Study</Label>
-              <Input id="major" name="major" value={formData.major} onChange={handleInputChange} className="mt-1" />
+              <Input
+                id="major"
+                name="major"
+                value={formData.major}
+                onChange={handleInputChange}
+                className="mt-1"
+                placeholder="Your field of study"
+              />
             </div>
           </div>
 
@@ -239,6 +315,7 @@ export default function ProfileForm() {
                 value={formData.graduationYear}
                 onChange={handleInputChange}
                 className="mt-1"
+                placeholder="2025"
               />
             </div>
 
@@ -250,6 +327,7 @@ export default function ProfileForm() {
                 value={formData.location}
                 onChange={handleInputChange}
                 className="mt-1"
+                placeholder="City, Country"
               />
             </div>
           </div>

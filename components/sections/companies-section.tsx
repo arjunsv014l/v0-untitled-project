@@ -156,7 +156,6 @@ export default function CompaniesSection() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="inline-flex items-center px-6 py-3 border-2 border-black rounded-full bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium transition-colors cursor-pointer"
-                onClick={() => (window.location.href = "/for-companies")}
               >
                 Explore Business Solutions
                 <svg
@@ -173,7 +172,8 @@ export default function CompaniesSection() {
                 </svg>
               </motion.div>
             }
-            isRegister={false}
+            isRegister={true}
+            redirectPath="/for-companies"
           />
         </div>
       </div>

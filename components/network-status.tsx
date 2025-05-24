@@ -1,59 +1,57 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { Wifi, WifiOff } from "lucide-react"
-import { checkNetworkConnectivity } from "@/lib/firebase"
 
 export default function NetworkStatus() {
   const [isOnline, setIsOnline] = useState(true)
-  const [showStatus, setShowStatus] = useState(false)
+  const [showNotification, setShowNotification] = useState(false)
 
   useEffect(() => {
+    // Set initial online status
+    setIsOnline(navigator.onLine)
+
     const handleOnline = () => {
       setIsOnline(true)
-      setShowStatus(true)
-      const timer = setTimeout(() => setShowStatus(false), 3000)
-      return () => clearTimeout(timer)
+      setShowNotification(true)
+      setTimeout(() => setShowNotification(false), 3000)
     }
 
     const handleOffline = () => {
       setIsOnline(false)
-      setShowStatus(true)
+      setShowNotification(true)
+      setTimeout(() => setShowNotification(false), 5000)
     }
-
-    // Set initial state
-    setIsOnline(checkNetworkConnectivity())
 
     // Add event listeners
     window.addEventListener("online", handleOnline)
     window.addEventListener("offline", handleOffline)
 
-    // Clean up
+    // Cleanup
     return () => {
       window.removeEventListener("online", handleOnline)
       window.removeEventListener("offline", handleOffline)
     }
   }, [])
 
-  if (!showStatus) return null
-
   return (
-    <div
-      className={`fixed bottom-4 right-4 z-50 flex items-center p-3 rounded-lg shadow-lg transition-all duration-300 ${
-        isOnline ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-      }`}
-    >
-      {isOnline ? (
-        <>
-          <Wifi className="h-5 w-5 mr-2" />
-          <span>Back online</span>
-        </>
-      ) : (
-        <>
-          <WifiOff className="h-5 w-5 mr-2" />
-          <span>You're offline</span>
-        </>
+    <AnimatePresence>
+      {showNotification && (
+        <motion.div
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50 }}
+          className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg border-2 border-black ${
+            isOnline ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            {isOnline ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
+            <span className="font-medium">{isOnline ? "Back online" : "You're offline"}</span>
+          </div>
+        </motion.div>
       )}
-    </div>
+    </AnimatePresence>
   )
 }

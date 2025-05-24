@@ -3,8 +3,7 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { db } from "@/lib/firebase"
-import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore"
+import { supabase } from "@/lib/supabase"
 import AdminLayout from "@/components/admin/admin-layout"
 import DoodleCard from "@/components/ui-elements/doodle-card"
 import DoodleButton from "@/components/ui-elements/doodle-button"
@@ -18,8 +17,8 @@ interface User {
   name: string
   email: string
   role: string
-  createdAt: string
-  avatar?: string
+  created_at: string
+  avatar_url?: string
 }
 
 export default function AdminUsersPage() {
@@ -44,15 +43,15 @@ export default function AdminUsersPage() {
     const fetchUsers = async () => {
       try {
         setLoading(true)
-        const usersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"))
-        const usersSnapshot = await getDocs(usersQuery)
-        const usersData = usersSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as User[]
+        const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false })
 
-        setUsers(usersData)
-        setFilteredUsers(usersData)
+        if (error) {
+          console.error("Error fetching users:", error)
+          return
+        }
+
+        setUsers(data || [])
+        setFilteredUsers(data || [])
       } catch (error) {
         console.error("Error fetching users:", error)
       } finally {
@@ -108,7 +107,21 @@ export default function AdminUsersPage() {
     if (!selectedUser) return
 
     try {
-      await deleteDoc(doc(db, "users", selectedUser.id))
+      // Delete user from profiles table
+      const { error } = await supabase.from("profiles").delete().eq("id", selectedUser.id)
+
+      if (error) {
+        console.error("Error deleting user profile:", error)
+        return
+      }
+
+      // Delete user from auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(selectedUser.id)
+
+      if (authError) {
+        console.error("Error deleting user from auth:", authError)
+      }
+
       setUsers(users.filter((user) => user.id !== selectedUser.id))
       setIsDeleteDialogOpen(false)
     } catch (error) {
@@ -128,15 +141,34 @@ export default function AdminUsersPage() {
     if (!selectedUser) return
 
     try {
-      await updateDoc(doc(db, "users", selectedUser.id), {
-        name: editForm.name,
-        email: editForm.email,
-        role: editForm.role,
-        updatedAt: new Date().toISOString(),
-      })
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          name: editForm.name,
+          email: editForm.email,
+          role: editForm.role,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedUser.id)
+
+      if (error) {
+        console.error("Error updating user:", error)
+        return
+      }
 
       // Update local state
-      setUsers(users.map((user) => (user.id === selectedUser.id ? { ...user, ...editForm } : user)))
+      setUsers(
+        users.map((user) =>
+          user.id === selectedUser.id
+            ? {
+                ...user,
+                name: editForm.name,
+                email: editForm.email,
+                role: editForm.role,
+              }
+            : user,
+        ),
+      )
 
       setIsEditDialogOpen(false)
     } catch (error) {
@@ -220,9 +252,9 @@ export default function AdminUsersPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {user.avatar ? (
+                        {user.avatar_url ? (
                           <img
-                            src={user.avatar || "/placeholder.svg"}
+                            src={user.avatar_url || "/placeholder.svg"}
                             alt={user.name}
                             className="h-full w-full object-cover"
                           />
@@ -251,7 +283,7 @@ export default function AdminUsersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {new Date(user.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button onClick={() => handleEditUser(user)} className="text-blue-600 hover:text-blue-900 mr-4">

@@ -2,21 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { Bell } from "lucide-react"
-import { db } from "@/lib/firebase"
-import { collection, query, onSnapshot, orderBy, doc, updateDoc } from "firebase/firestore"
+import { supabase } from "@/lib/supabase"
 import { useUser } from "@/context/user-context"
 import { motion, AnimatePresence } from "framer-motion"
 import NotificationItem from "./notification-item"
 
 export interface Notification {
   id: string
-  userId: string
+  user_id: string
   title: string
   message: string
   type: "info" | "success" | "warning" | "error"
   read: boolean
   link?: string
-  createdAt: string
+  created_at: string
 }
 
 export default function NotificationCenter() {
@@ -28,31 +27,66 @@ export default function NotificationCenter() {
   useEffect(() => {
     if (!user) return
 
-    // Subscribe to user's notifications
-    const notificationsRef = collection(db, "users", user.id, "notifications")
-    const notificationsQuery = query(notificationsRef, orderBy("createdAt", "desc"))
+    // Fetch notifications initially
+    fetchNotifications()
 
-    const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
-      const notificationData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Notification[]
+    // Set up real-time subscription
+    const channel = supabase
+      .channel("notifications-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchNotifications()
+        },
+      )
+      .subscribe()
 
-      setNotifications(notificationData)
-      setUnreadCount(notificationData.filter((n) => !n.read).length)
-    })
-
-    return () => unsubscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [user])
+
+  const fetchNotifications = async () => {
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching notifications:", error)
+      return
+    }
+
+    setNotifications(data || [])
+    setUnreadCount(data?.filter((n) => !n.read).length || 0)
+  }
 
   const markAsRead = async (notificationId: string) => {
     if (!user) return
 
     try {
-      const notificationRef = doc(db, "users", user.id, "notifications", notificationId)
-      await updateDoc(notificationRef, {
-        read: true,
-      })
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", notificationId)
+        .eq("user_id", user.id)
+
+      if (error) {
+        console.error("Error marking notification as read:", error)
+      } else {
+        // Update local state
+        setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)))
+        setUnreadCount((prev) => Math.max(0, prev - 1))
+      }
     } catch (error) {
       console.error("Error marking notification as read:", error)
     }
@@ -62,16 +96,19 @@ export default function NotificationCenter() {
     if (!user) return
 
     try {
-      const promises = notifications
-        .filter((n) => !n.read)
-        .map((notification) => {
-          const notificationRef = doc(db, "users", user.id, "notifications", notification.id)
-          return updateDoc(notificationRef, {
-            read: true,
-          })
-        })
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("read", false)
 
-      await Promise.all(promises)
+      if (error) {
+        console.error("Error marking all notifications as read:", error)
+      } else {
+        // Update local state
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+        setUnreadCount(0)
+      }
     } catch (error) {
       console.error("Error marking all notifications as read:", error)
     }

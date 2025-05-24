@@ -1,151 +1,237 @@
 "use client"
 
-import { useState } from "react"
-import { db } from "@/lib/firebase"
-import { doc, getDoc, collection, getDocs, limit, query } from "firebase/firestore"
+import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
+import DoodleCard from "@/components/ui-elements/doodle-card"
+import DoodleButton from "@/components/ui-elements/doodle-button"
+import { CheckCircle, XCircle, AlertCircle, RefreshCw, Database } from "lucide-react"
+
+interface DiagnosticResult {
+  name: string
+  status: "success" | "error" | "warning"
+  message: string
+  details?: any
+}
 
 export default function DatabaseDiagnostic() {
-  const [status, setStatus] = useState<"idle" | "testing" | "success" | "error">("idle")
-  const [message, setMessage] = useState("")
-  const [dbInfo, setDbInfo] = useState<any>(null)
-  const [isVisible, setIsVisible] = useState(false)
+  const [results, setResults] = useState<DiagnosticResult[]>([])
+  const [isRunning, setIsRunning] = useState(false)
 
-  // Function to test database connection
-  const testDatabase = async () => {
-    setStatus("testing")
-    setMessage("Testing database connection...")
-    setDbInfo(null)
+  const runDiagnostics = async () => {
+    setIsRunning(true)
+    const diagnosticResults: DiagnosticResult[] = []
 
+    // Test 1: Supabase Connection
     try {
-      // Test 1: Check if we can access the stats collection
-      const statsRef = doc(db, "stats", "userCounter")
-      const statsDoc = await getDoc(statsRef)
+      const { data, error } = await supabase.from("profiles").select("count", { count: "exact", head: true })
+      if (error) throw error
 
-      if (statsDoc.exists()) {
-        setMessage("Successfully connected to database! Found userCounter document.")
-        setDbInfo({
-          userCounter: statsDoc.data(),
-        })
-      } else {
-        setMessage("Connected to database, but userCounter document not found. Database may need initialization.")
-      }
-
-      // Test 2: Check if we can access the registrations collection
-      try {
-        const registrationsRef = collection(db, "registrations")
-        const q = query(registrationsRef, limit(1))
-        const querySnapshot = await getDocs(q)
-
-        setDbInfo((prev) => ({
-          ...prev,
-          registrationsCount: querySnapshot.size,
-          registrationsExists: true,
-        }))
-      } catch (regError) {
-        console.error("Error checking registrations collection:", regError)
-        setDbInfo((prev) => ({
-          ...prev,
-          registrationsError: regError.message,
-        }))
-      }
-
-      // Test 3: Check if we can access the config document
-      try {
-        const configRef = doc(db, "stats", "config")
-        const configDoc = await getDoc(configRef)
-
-        if (configDoc.exists()) {
-          setDbInfo((prev) => ({
-            ...prev,
-            config: configDoc.data(),
-          }))
-        }
-      } catch (configError) {
-        console.error("Error checking config document:", configError)
-      }
-
-      setStatus("success")
+      diagnosticResults.push({
+        name: "Supabase Connection",
+        status: "success",
+        message: "Successfully connected to Supabase",
+        details: { profileCount: data },
+      })
     } catch (error) {
-      console.error("Database connection error:", error)
-      setStatus("error")
-      setMessage(`Database connection error: ${error.message || "Unknown error"}`)
+      diagnosticResults.push({
+        name: "Supabase Connection",
+        status: "error",
+        message: `Failed to connect: ${error.message}`,
+        details: error,
+      })
+    }
+
+    // Test 2: Authentication
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession()
+      diagnosticResults.push({
+        name: "Authentication System",
+        status: "success",
+        message: session ? "User authenticated" : "No active session (normal)",
+        details: { hasSession: !!session },
+      })
+    } catch (error) {
+      diagnosticResults.push({
+        name: "Authentication System",
+        status: "error",
+        message: `Auth error: ${error.message}`,
+        details: error,
+      })
+    }
+
+    // Test 3: Profiles Table
+    try {
+      const { data, error } = await supabase.from("profiles").select("*").limit(1)
+      if (error) throw error
+
+      diagnosticResults.push({
+        name: "Profiles Table",
+        status: "success",
+        message: "Profiles table accessible",
+        details: { sampleData: data },
+      })
+    } catch (error) {
+      diagnosticResults.push({
+        name: "Profiles Table",
+        status: "error",
+        message: `Profiles table error: ${error.message}`,
+        details: error,
+      })
+    }
+
+    // Test 4: Stats Table
+    try {
+      const { data, error } = await supabase.from("stats").select("*").eq("name", "user_counter").single()
+      if (error && error.code !== "PGRST116") throw error
+
+      diagnosticResults.push({
+        name: "Stats Table",
+        status: data ? "success" : "warning",
+        message: data ? "Stats table working" : "Stats table exists but no user counter found",
+        details: { userCounter: data },
+      })
+    } catch (error) {
+      diagnosticResults.push({
+        name: "Stats Table",
+        status: "error",
+        message: `Stats table error: ${error.message}`,
+        details: error,
+      })
+    }
+
+    // Test 5: Real-time Subscriptions
+    try {
+      const channel = supabase.channel("test-channel")
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("Timeout")), 5000)
+
+        channel
+          .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {})
+          .subscribe((status) => {
+            clearTimeout(timeout)
+            if (status === "SUBSCRIBED") {
+              resolve(true)
+            } else {
+              reject(new Error(`Subscription failed: ${status}`))
+            }
+          })
+      })
+
+      supabase.removeChannel(channel)
+
+      diagnosticResults.push({
+        name: "Real-time Subscriptions",
+        status: "success",
+        message: "Real-time subscriptions working",
+        details: { subscriptionTest: "passed" },
+      })
+    } catch (error) {
+      diagnosticResults.push({
+        name: "Real-time Subscriptions",
+        status: "warning",
+        message: `Real-time test failed: ${error.message}`,
+        details: error,
+      })
+    }
+
+    // Test 6: Storage
+    try {
+      const { data, error } = await supabase.storage.listBuckets()
+      if (error) throw error
+
+      diagnosticResults.push({
+        name: "Storage System",
+        status: "success",
+        message: "Storage system accessible",
+        details: { buckets: data },
+      })
+    } catch (error) {
+      diagnosticResults.push({
+        name: "Storage System",
+        status: "warning",
+        message: `Storage warning: ${error.message}`,
+        details: error,
+      })
+    }
+
+    setResults(diagnosticResults)
+    setIsRunning(false)
+  }
+
+  useEffect(() => {
+    runDiagnostics()
+  }, [])
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "success":
+        return <CheckCircle className="h-5 w-5 text-green-500" />
+      case "error":
+        return <XCircle className="h-5 w-5 text-red-500" />
+      case "warning":
+        return <AlertCircle className="h-5 w-5 text-yellow-500" />
+      default:
+        return <AlertCircle className="h-5 w-5 text-gray-500" />
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "success":
+        return "border-green-200 bg-green-50"
+      case "error":
+        return "border-red-200 bg-red-50"
+      case "warning":
+        return "border-yellow-200 bg-yellow-50"
+      default:
+        return "border-gray-200 bg-gray-50"
     }
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-50">
-      {!isVisible ? (
-        <button
-          onClick={() => setIsVisible(true)}
-          className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg"
-        >
-          Database Diagnostic
-        </button>
-      ) : (
-        <div className="bg-white rounded-lg shadow-xl p-4 w-80 border border-gray-200">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg">Database Diagnostic</h3>
-            <button onClick={() => setIsVisible(false)} className="text-gray-500 hover:text-gray-700">
-              ✕
-            </button>
-          </div>
+    <DoodleCard className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Database className="h-6 w-6 mr-2" />
+          <h2 className="text-2xl font-bold">Database Diagnostics</h2>
+        </div>
+        <DoodleButton onClick={runDiagnostics} disabled={isRunning} className="flex items-center">
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRunning ? "animate-spin" : ""}`} />
+          {isRunning ? "Running..." : "Run Tests"}
+        </DoodleButton>
+      </div>
 
-          <div className="mb-4">
-            <button
-              onClick={testDatabase}
-              disabled={status === "testing"}
-              className="w-full bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50"
-            >
-              {status === "testing" ? "Testing..." : "Test Database Connection"}
-            </button>
-          </div>
-
-          {message && (
-            <div
-              className={`p-3 rounded mb-4 ${
-                status === "error"
-                  ? "bg-red-100 text-red-800"
-                  : status === "success"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-blue-100 text-blue-800"
-              }`}
-            >
-              {message}
-            </div>
-          )}
-
-          {dbInfo && (
-            <div className="border rounded p-3 bg-gray-50 max-h-60 overflow-auto">
-              <h4 className="font-semibold mb-2">Database Info:</h4>
-              <pre className="text-xs whitespace-pre-wrap">
-                {JSON.stringify(
-                  dbInfo,
-                  (key, value) => {
-                    // Format timestamps for readability
-                    if (value && typeof value === "object" && value.seconds) {
-                      return new Date(value.seconds * 1000).toLocaleString()
-                    }
-                    return value
-                  },
-                  2,
+      <div className="space-y-4">
+        {results.map((result, index) => (
+          <div key={index} className={`p-4 rounded-lg border-2 ${getStatusColor(result.status)}`}>
+            <div className="flex items-start">
+              <div className="mr-3 mt-0.5">{getStatusIcon(result.status)}</div>
+              <div className="flex-grow">
+                <h3 className="font-bold text-lg">{result.name}</h3>
+                <p className="text-gray-700 mt-1">{result.message}</p>
+                {result.details && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">View Details</summary>
+                    <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
+                      {JSON.stringify(result.details, null, 2)}
+                    </pre>
+                  </details>
                 )}
-              </pre>
-
-              <div className="mt-4 text-xs text-gray-600">
-                <p>Database ID: (default)</p>
-                <p>Project ID: {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}</p>
               </div>
             </div>
-          )}
-
-          <div className="mt-4 text-xs text-gray-500">
-            <p>
-              To initialize the database, visit:{" "}
-              <code className="bg-gray-100 px-1 py-0.5 rounded">/api/init-database?secret=YOUR_ADMIN_SECRET</code>
-            </p>
           </div>
+        ))}
+      </div>
+
+      {results.length === 0 && !isRunning && (
+        <div className="text-center py-8 text-gray-500">
+          <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>Click "Run Tests" to start diagnostics</p>
         </div>
       )}
-    </div>
+    </DoodleCard>
   )
 }

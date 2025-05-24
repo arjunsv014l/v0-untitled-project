@@ -3,31 +3,21 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { db } from "@/lib/firebase"
-import {
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  where,
-  getDocs,
-  doc,
-  setDoc,
-} from "firebase/firestore"
+import { supabase } from "@/lib/supabase"
 import { useUser } from "@/context/user-context"
 import DoodleCard from "@/components/ui-elements/doodle-card"
 import DoodleButton from "@/components/ui-elements/doodle-button"
 import { Send, Paperclip, ImageIcon, Smile } from "lucide-react"
+import { createOrGetChat, getChatMessages, sendMessage } from "@/lib/supabase-db"
 
 interface Message {
   id: string
   text: string
-  senderId: string
-  senderName: string
-  senderAvatar?: string
-  timestamp: any
+  sender_id: string
+  sender_name: string
+  sender_avatar?: string
+  created_at: string
+  chat_id: string
 }
 
 interface ChatInterfaceProps {
@@ -40,101 +30,75 @@ export default function ChatInterface({ recipientId, recipientName, recipientAva
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [chatId, setChatId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const { user } = useUser()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!user || !recipientId) return
 
-    const fetchOrCreateChat = async () => {
+    const initializeChat = async () => {
       try {
-        // Check if a chat already exists between these users
-        const chatsRef = collection(db, "chats")
-        const q = query(
-          chatsRef,
-          where(`participants.${user.id}`, "==", true),
-          where(`participants.${recipientId}`, "==", true),
-        )
+        setIsLoading(true)
+        const chat = await createOrGetChat(user.id, recipientId)
+        setChatId(chat.id)
 
-        const querySnapshot = await getDocs(q)
+        // Load initial messages
+        const chatMessages = await getChatMessages(chat.id)
+        setMessages(chatMessages)
 
-        if (!querySnapshot.empty) {
-          // Chat exists, use the first one
-          setChatId(querySnapshot.docs[0].id)
-        } else {
-          // Create a new chat
-          const newChatRef = await addDoc(chatsRef, {
-            participants: {
-              [user.id]: true,
-              [recipientId]: true,
-            },
-            createdAt: serverTimestamp(),
-            lastMessage: null,
-            lastMessageTime: null,
-          })
-
-          setChatId(newChatRef.id)
-        }
+        // Scroll to bottom
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+        }, 100)
       } catch (error) {
-        console.error("Error fetching or creating chat:", error)
+        console.error("Error initializing chat:", error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    fetchOrCreateChat()
+    initializeChat()
   }, [user, recipientId])
 
   useEffect(() => {
     if (!chatId) return
 
-    // Subscribe to messages
-    const messagesRef = collection(db, "chats", chatId, "messages")
-    const q = query(messagesRef, orderBy("timestamp", "asc"))
+    // Set up real-time subscription for new messages
+    const channel = supabase
+      .channel(`messages:chat_id=eq.${chatId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `chat_id=eq.${chatId}`,
+        },
+        (payload) => {
+          const newMessage = payload.new as Message
+          setMessages((prev) => [...prev, newMessage])
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messageData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Message[]
+          // Scroll to bottom when new messages arrive
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+          }, 100)
+        },
+      )
+      .subscribe()
 
-      setMessages(messageData)
-
-      // Scroll to bottom when new messages arrive
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-      }, 100)
-    })
-
-    return () => unsubscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [chatId])
 
-  const sendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!newMessage.trim() || !user || !chatId) return
 
     try {
-      // Add message to the chat
-      const messagesRef = collection(db, "chats", chatId, "messages")
-      await addDoc(messagesRef, {
-        text: newMessage,
-        senderId: user.id,
-        senderName: user.name,
-        senderAvatar: user.avatar,
-        timestamp: serverTimestamp(),
-      })
-
-      // Update the chat with the last message
-      const chatRef = doc(db, "chats", chatId)
-      await setDoc(
-        chatRef,
-        {
-          lastMessage: newMessage,
-          lastMessageTime: serverTimestamp(),
-        },
-        { merge: true },
-      )
-
-      // Clear the input
+      await sendMessage(chatId, user.id, user.name, newMessage, user.avatar)
       setNewMessage("")
     } catch (error) {
       console.error("Error sending message:", error)
@@ -166,7 +130,11 @@ export default function ChatInterface({ recipientId, recipientName, recipientAva
 
       {/* Messages area */}
       <div className="flex-grow p-4 overflow-y-auto bg-gray-50">
-        {messages.length === 0 ? (
+        {isLoading ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black"></div>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="h-full flex items-center justify-center text-gray-500">
             <p>No messages yet. Start a conversation!</p>
           </div>
@@ -175,21 +143,19 @@ export default function ChatInterface({ recipientId, recipientName, recipientAva
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.senderId === user?.id ? "justify-end" : "justify-start"}`}
+                className={`flex ${message.sender_id === user?.id ? "justify-end" : "justify-start"}`}
               >
                 <div
                   className={`max-w-[70%] rounded-lg p-3 ${
-                    message.senderId === user?.id ? "bg-blue-500 text-white" : "bg-white border border-gray-200"
+                    message.sender_id === user?.id ? "bg-blue-500 text-white" : "bg-white border border-gray-200"
                   }`}
                 >
                   <p>{message.text}</p>
-                  <p className={`text-xs mt-1 ${message.senderId === user?.id ? "text-blue-100" : "text-gray-500"}`}>
-                    {message.timestamp?.toDate
-                      ? message.timestamp.toDate().toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "Sending..."}
+                  <p className={`text-xs mt-1 ${message.sender_id === user?.id ? "text-blue-100" : "text-gray-500"}`}>
+                    {new Date(message.created_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </p>
                 </div>
               </div>
@@ -200,7 +166,7 @@ export default function ChatInterface({ recipientId, recipientName, recipientAva
       </div>
 
       {/* Message input */}
-      <form onSubmit={sendMessage} className="p-4 border-t border-gray-200">
+      <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
         <div className="flex items-center">
           <button type="button" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
             <Paperclip className="h-5 w-5 text-gray-500" />

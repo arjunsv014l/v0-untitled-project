@@ -1,196 +1,413 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { auth, db } from "@/lib/firebase"
-import { onAuthStateChanged } from "firebase/auth"
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"
+import type React from "react"
+import { createContext, useState, useEffect, useContext, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import type { Database } from "@/types/supabase"
 
-// Simplified User type
-export interface User {
+// Define a Profile interface that extends the User with additional profile data
+interface Profile {
   id: string
-  email: string
-  name: string
+  email: string | null
+  name: string | null
+  avatar_url: string | null
+  college?: string | null
+  major?: string | null
+  graduation_year?: number | null
+  bio?: string | null
+  interests?: string[] | null
+  location?: string | null
+  referral_code?: string | null
+  marketing_consent?: boolean | null
 }
 
-// Simplified context type
-interface UserContextType {
-  user: User | null
-  register: (email: string, password: string, name: string) => Promise<{ success: boolean }>
-  login: (email: string, password: string) => Promise<{ success: boolean }>
-  logout: () => void
+// Define the return type for auth operations
+interface AuthResult {
+  success: boolean
+  userId?: string
+  error?: {
+    code: string
+    message: string
+    isNetworkError?: boolean
+  }
+}
+
+// Define the context props
+interface UserContextProps {
+  user: Profile | null
   isLoading: boolean
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    dob?: string,
+    avatar?: string | null,
+    college?: string,
+    major?: string,
+    graduationYear?: number,
+    bio?: string,
+    interests?: string[],
+    location?: string,
+    referralCode?: string,
+    marketingConsent?: boolean,
+  ) => Promise<AuthResult>
+  login: (email: string, password: string) => Promise<AuthResult>
+  logout: () => Promise<void>
+  updateProfile: (profileData: Partial<Profile>) => Promise<boolean>
 }
 
-// Create context with default values
-const UserContext = createContext<UserContextType>({
-  user: null,
-  register: async () => ({ success: false }),
-  login: async () => ({ success: false }),
-  logout: () => {},
-  isLoading: false,
-})
+// Create the context
+const UserContext = createContext<UserContextProps | null>(null)
 
-export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+// Custom hook to use the auth context
+export const useUser = () => {
+  const context = useContext(UserContext)
+  if (!context) {
+    throw new Error("useUser must be used within a UserProvider")
+  }
+  return context
+}
 
-  // Check for existing user on mount
+interface UserProviderProps {
+  children: ReactNode
+}
+
+export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<Profile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClientComponentClient<Database>()
+
+  // Load user on initial render
   useEffect(() => {
-    const checkUser = async () => {
+    const getUser = async () => {
       try {
         setIsLoading(true)
 
-        // Set up Firebase auth state listener
-        const unsubscribe = onAuthStateChanged(
-          auth,
-          async (firebaseUser) => {
-            if (firebaseUser) {
-              // User is signed in
-              try {
-                console.log("Auth state changed: User is signed in", firebaseUser.uid)
-                // Get additional user data from Firestore
-                const userDocRef = doc(db, "users", firebaseUser.uid)
-                const userDoc = await getDoc(userDocRef)
+        // Get current authenticated user
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
 
-                if (userDoc.exists()) {
-                  console.log("User document exists in Firestore")
-                  const userData = userDoc.data()
+        if (error) {
+          console.error("Error getting session:", error)
+          setUser(null)
+          return
+        }
 
-                  // Update last login
-                  await updateDoc(userDocRef, {
-                    lastLogin: serverTimestamp(),
-                  }).catch((err) => console.warn("Failed to update last login:", err))
+        if (!session) {
+          setUser(null)
+          setIsLoading(false)
+          return
+        }
 
-                  // Create user profile
-                  const userProfile: User = {
-                    id: firebaseUser.uid,
-                    email: firebaseUser.email || "",
-                    name: userData?.name || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "",
-                  }
+        // Get user profile data
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single()
 
-                  setUser(userProfile)
-                } else {
-                  // User document doesn't exist, create it
-                  console.warn("User document doesn't exist in Firestore. Creating it now.")
-                  const userProfile: User = {
-                    id: firebaseUser.uid,
-                    email: firebaseUser.email || "",
-                    name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "",
-                  }
+        if (profileError) {
+          console.error("Error fetching profile:", profileError)
+          setUser(null)
+          return
+        }
 
-                  // Create user document
-                  try {
-                    await setDoc(userDocRef, {
-                      name: userProfile.name,
-                      email: userProfile.email,
-                      createdAt: serverTimestamp(),
-                      lastLogin: serverTimestamp(),
-                      notes: "Document created during auth state change for existing auth user",
-                    })
-                    console.log("✅ User document created in Firestore during auth state change")
-                  } catch (firestoreError) {
-                    console.error("❌ Error creating user document during auth state change:", firestoreError)
-                    // Try to get more details about the error
-                    if (firestoreError.code === "permission-denied") {
-                      console.error("This appears to be a Firestore permissions issue. Check your security rules.")
-                    }
-                  }
+        // Create a complete user profile object
+        const fullProfile: Profile = {
+          id: session.user.id,
+          email: session.user.email,
+          name: profileData?.name || session.user.user_metadata?.name || null,
+          avatar_url: profileData?.avatar_url || session.user.user_metadata?.avatar_url || null,
+          college: profileData?.college || null,
+          major: profileData?.major || null,
+          graduation_year: profileData?.graduation_year || null,
+          bio: profileData?.bio || null,
+          interests: profileData?.interests ? profileData.interests.split(",").map((i) => i.trim()) : null,
+          location: profileData?.location || null,
+          referral_code: profileData?.referral_code || null,
+          marketing_consent: profileData?.marketing_consent || false,
+        }
 
-                  setUser(userProfile)
-                }
-              } catch (error) {
-                console.error("Error processing user data:", error)
-
-                // Create minimal user profile
-                const userProfile: User = {
-                  id: firebaseUser.uid,
-                  email: firebaseUser.email || "",
-                  name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "",
-                }
-
-                setUser(userProfile)
-              }
-            } else {
-              // User is signed out
-              console.log("Auth state changed: User is signed out")
-              setUser(null)
-            }
-            setIsLoading(false)
-          },
-          (error) => {
-            console.error("Auth state observer error:", error)
-            setIsLoading(false)
-          },
-        )
-
-        // Clean up subscription on unmount
-        return () => unsubscribe()
+        setUser(fullProfile)
       } catch (error) {
-        console.error("Error checking user:", error)
+        console.error("Error in auth state change:", error)
+        setUser(null)
+      } finally {
         setIsLoading(false)
       }
     }
 
-    checkUser()
-  }, [])
+    // Initial call
+    getUser()
 
-  // Simplified mock functions
-  const register = async (email: string, password: string, name: string) => {
-    setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    // Mock successful registration
-    setUser({
-      id: "mock-user-id",
-      email,
-      name,
+    // Set up auth state change listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        getUser() // Reload user data when auth state changes
+      } else {
+        setUser(null)
+      }
     })
 
-    setIsLoading(false)
-    return { success: true }
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase])
+
+  // Register function
+  const register = async (
+    email: string,
+    password: string,
+    name: string,
+    dob?: string,
+    avatar?: string | null,
+    college?: string,
+    major?: string,
+    graduationYear?: number,
+    bio?: string,
+    interests?: string[],
+    location?: string,
+    referralCode?: string,
+    marketingConsent?: boolean,
+  ): Promise<AuthResult> => {
+    try {
+      // Use the atomic registration API endpoint for a complete registration flow
+      const response = await fetch("/api/auth/atomic-register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+          dob,
+          avatar,
+          college,
+          major,
+          graduationYear,
+          bio,
+          interests,
+          location,
+          referralCode,
+          marketingConsent,
+        }),
+      })
+
+      // Check if the response is ok before trying to parse JSON
+      if (!response.ok) {
+        // Try to parse the error response as JSON
+        let errorMessage = "Registration failed"
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch (parseError) {
+          // If JSON parsing fails, use the status text
+          errorMessage = `Registration failed: ${response.status} ${response.statusText}`
+          console.error("Error parsing response:", parseError)
+          // Try to get the text content as fallback
+          try {
+            const textContent = await response.text()
+            console.error("Response text content:", textContent)
+            if (textContent) {
+              errorMessage = `Registration failed: ${textContent.substring(0, 100)}...`
+            }
+          } catch (textError) {
+            console.error("Error getting response text:", textError)
+          }
+        }
+
+        return {
+          success: false,
+          error: {
+            code: "registration_failed",
+            message: errorMessage,
+          },
+        }
+      }
+
+      // Parse the successful response
+      const data = await response.json()
+
+      // Sign in the user after registration
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        console.error("Error signing in after registration:", signInError)
+        return {
+          success: true, // Registration was successful even if sign-in failed
+          userId: data.userId,
+          error: {
+            code: "signin_failed",
+            message: "Registration successful but automatic sign-in failed. Please sign in manually.",
+          },
+        }
+      }
+
+      return {
+        success: true,
+        userId: data.userId,
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error)
+      return {
+        success: false,
+        error: {
+          code: "unexpected_error",
+          message: error.message || "An unexpected error occurred during registration",
+          isNetworkError: error.name === "TypeError" && error.message.includes("fetch"),
+        },
+      }
+    }
   }
 
-  const login = async (email: string, password: string) => {
-    setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
+  // Login function
+  const login = async (email: string, password: string): Promise<AuthResult> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    // Mock successful login
-    setUser({
-      id: "mock-user-id",
-      email,
-      name: email.split("@")[0],
-    })
+      if (error) {
+        return {
+          success: false,
+          error: {
+            code: error.name,
+            message: error.message,
+          },
+        }
+      }
 
-    setIsLoading(false)
-    return { success: true }
+      return {
+        success: true,
+        userId: data.user.id,
+      }
+    } catch (error: any) {
+      console.error("Login error:", error)
+      return {
+        success: false,
+        error: {
+          code: "unexpected_error",
+          message: error.message || "An unexpected error occurred during login",
+          isNetworkError: error.name === "TypeError" && error.message.includes("fetch"),
+        },
+      }
+    }
   }
 
-  const logout = () => {
-    setUser(null)
+  // Logout function
+  const logout = async (): Promise<void> => {
+    try {
+      await supabase.auth.signOut()
+      setUser(null)
+      router.push("/")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
   }
 
-  return (
-    <UserContext.Provider
-      value={{
-        user,
-        register,
-        login,
-        logout,
-        isLoading,
-      }}
-    >
-      {children}
-    </UserContext.Provider>
-  )
-}
+  // Update profile function
+  const updateProfile = async (profileData: Partial<Profile>): Promise<boolean> => {
+    try {
+      if (!user) {
+        console.error("Cannot update profile: No user is logged in")
+        return false
+      }
 
-// Hook to use the context
-export function useUser() {
-  const context = useContext(UserContext)
-  if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider")
+      // Prepare data for the profiles table
+      const supabaseProfileData: any = {}
+
+      if (profileData.name) supabaseProfileData.name = profileData.name
+      if (profileData.avatar_url) supabaseProfileData.avatar_url = profileData.avatar_url
+      if (profileData.college) supabaseProfileData.college = profileData.college
+      if (profileData.major) supabaseProfileData.major = profileData.major
+      if (profileData.graduation_year) supabaseProfileData.graduation_year = profileData.graduation_year
+      if (profileData.bio) supabaseProfileData.bio = profileData.bio
+      if (profileData.interests) supabaseProfileData.interests = profileData.interests.join(", ")
+      if (profileData.location) supabaseProfileData.location = profileData.location
+      if (profileData.marketing_consent !== undefined)
+        supabaseProfileData.marketing_consent = profileData.marketing_consent
+
+      supabaseProfileData.updated_at = new Date().toISOString()
+
+      // Update the profile
+      const { error } = await supabase.from("profiles").update(supabaseProfileData).eq("id", user.id)
+
+      if (error) {
+        console.error("Error updating profile:", error)
+        return false
+      }
+
+      // Update user metadata if name or avatar has changed
+      if (profileData.name || profileData.avatar_url) {
+        const { error: metadataError } = await supabase.auth.updateUser({
+          data: {
+            name: profileData.name || user.name,
+            avatar_url: profileData.avatar_url || user.avatar_url,
+          },
+        })
+
+        if (metadataError) {
+          console.error("Error updating user metadata:", metadataError)
+          // Non-critical error, continue
+        }
+      }
+
+      // Update local user state
+      setUser((prev) => (prev ? { ...prev, ...profileData } : null))
+
+      // Refetch profile data to ensure complete sync
+      const { data: updatedProfile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
+      if (!fetchError && updatedProfile) {
+        const fullProfile: Profile = {
+          id: user.id,
+          email: user.email,
+          name: updatedProfile.name || null,
+          avatar_url: updatedProfile.avatar_url || null,
+          college: updatedProfile.college || null,
+          major: updatedProfile.major || null,
+          graduation_year: updatedProfile.graduation_year || null,
+          bio: updatedProfile.bio || null,
+          interests: updatedProfile.interests ? updatedProfile.interests.split(",").map((i) => i.trim()) : null,
+          location: updatedProfile.location || null,
+          referral_code: updatedProfile.referral_code || null,
+          marketing_consent: updatedProfile.marketing_consent || false,
+        }
+        setUser(fullProfile)
+      }
+
+      return true
+    } catch (error) {
+      console.error("Update profile error:", error)
+      return false
+    }
   }
-  return context
+
+  // Create the context value
+  const value: UserContextProps = {
+    user,
+    isLoading,
+    register,
+    login,
+    logout,
+    updateProfile,
+  }
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>
 }

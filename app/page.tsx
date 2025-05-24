@@ -12,10 +12,8 @@ import PersonalBrandingSection from "@/components/personal-branding-section"
 import CampusInfluenceProgram from "@/components/campus-influence-program"
 import SocialCommunity from "@/components/social-community"
 import LaunchingSoon from "@/components/launching-soon"
-import DoodleButton from "@/components/ui-elements/doodle-button"
-import SignInModal from "@/components/sign-in-modal"
 
-export default function HomePage() {
+export default function Home() {
   useEffect(() => {
     // Check if we're returning from another page
     const savedScrollPosition = localStorage.getItem("landingPageScrollPosition")
@@ -31,18 +29,7 @@ export default function HomePage() {
   }, [])
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
-      <h1 className="text-3xl font-bold mb-8">DreamClerk</h1>
-
-      <div className="space-y-4">
-        <DoodleButton>Go to Career Page</DoodleButton>
-
-        <SignInModal
-          trigger={<DoodleButton variant="outline">Register Now</DoodleButton>}
-          onSuccess={() => alert("Registration successful!")}
-        />
-      </div>
-
+    <main className="min-h-screen bg-white">
       <Hero />
 
       {/* Earn With Dreamclerk Section */}

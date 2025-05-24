@@ -6,13 +6,16 @@ import { Menu, X, ChevronDown, User } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useUser } from "@/context/user-context"
 import DoodleButton from "./ui-elements/doodle-button"
-import SignInModal from "./sign-in-modal"
+import ActionButton from "./ui-elements/action-button"
+import { getButtonConfig } from "@/lib/button-config"
 import NotificationCenter from "./notifications/notification-center"
+import UserWelcomeHighlight from "./user-welcome-highlight"
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isNewUser, setIsNewUser] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, isLoading } = useUser()
@@ -53,6 +56,23 @@ export default function Navigation() {
     { label: "AI Assistant", href: "/ai-assistant" },
     { label: "How It Works", href: "/how-it-works" },
   ]
+
+  const loggedInNavItems = [
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Profile", href: "/profile" },
+  ]
+
+  // Detect when a user first logs in
+  useEffect(() => {
+    if (user && !isNewUser) {
+      setIsNewUser(true)
+      // Reset after some time
+      const timer = setTimeout(() => {
+        setIsNewUser(false)
+      }, 60000) // Consider them "new" for 1 minute
+      return () => clearTimeout(timer)
+    }
+  }, [user])
 
   return (
     <header
@@ -101,6 +121,11 @@ export default function Navigation() {
                       <span className="font-bold">{user.name.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
+                  <div className="hidden md:block">
+                    <UserWelcomeHighlight isNewUser={isNewUser}>
+                      <span className="font-medium text-sm">Welcome, {user.name.split(" ")[0]}!</span>
+                    </UserWelcomeHighlight>
+                  </div>
                   <ChevronDown className="h-4 w-4" />
                 </button>
 
@@ -127,17 +152,6 @@ export default function Navigation() {
                         >
                           Profile
                         </button>
-                        {user.role === "admin" && (
-                          <button
-                            onClick={() => {
-                              handleNavigation("/admin/dashboard")
-                              setIsProfileOpen(false)
-                            }}
-                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            Admin Dashboard
-                          </button>
-                        )}
                         <button
                           onClick={handleLogout}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -151,7 +165,7 @@ export default function Navigation() {
               </div>
             </div>
           ) : (
-            <SignInModal trigger={<DoodleButton size="sm">Register Now</DoodleButton>} isRegister={true} />
+            <ActionButton config={getButtonConfig("REGISTER", { size: "sm" })} />
           )}
         </div>
 
@@ -221,23 +235,12 @@ export default function Navigation() {
                         <User className="inline-block h-4 w-4 mr-2" />
                         Profile
                       </button>
-                      {user.role === "admin" && (
-                        <button
-                          onClick={() => handleNavigation("/admin/dashboard")}
-                          className="block w-full p-2 text-sm text-left rounded-lg hover:bg-gray-100"
-                        >
-                          <User className="inline-block h-4 w-4 mr-2" />
-                          Admin Dashboard
-                        </button>
-                      )}
-                      <DoodleButton onClick={handleLogout} className="w-full">
-                        Logout
-                      </DoodleButton>
+                      <ActionButton config={getButtonConfig("LOGOUT", { className: "w-full" })} />
                     </div>
                   </div>
                 ) : (
                   <div className="flex flex-col space-y-3">
-                    <SignInModal trigger={<DoodleButton>Register Now</DoodleButton>} isRegister={true} />
+                    <ActionButton config={getButtonConfig("REGISTER", { className: "w-full" })} />
                   </div>
                 )}
               </div>

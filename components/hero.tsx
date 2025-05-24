@@ -4,15 +4,53 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 import DoodleBackground from "./ui-elements/doodle-background"
-import DoodleButton from "./ui-elements/doodle-button"
-import { Star, Sparkles, Zap } from "lucide-react"
-import Link from "next/link"
-import SignInModal from "./sign-in-modal"
-import Counter from "./counter"
+import ActionButton from "./ui-elements/action-button"
+import { getButtonConfig } from "@/lib/button-config"
+import { Star, Sparkles, Zap, Users } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 export default function Hero() {
-  const [isHovered, setIsHovered] = useState(false)
   const [counterUpdated, setCounterUpdated] = useState(false)
+  const [count, setCount] = useState(500)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Load the counter value
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        // Try to get from localStorage first for immediate display
+        const storedCount = localStorage.getItem("userCount")
+        if (storedCount) {
+          setCount(Number.parseInt(storedCount))
+        }
+
+        // Then try to get from Supabase
+        const { data, error } = await supabase.from("stats").select("count").eq("name", "user_counter").single()
+
+        if (!error && data) {
+          setCount(data.count)
+          localStorage.setItem("userCount", data.count.toString())
+        }
+      } catch (error) {
+        console.error("Error fetching count:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchCount()
+
+    // Listen for count updates
+    const handleCountUpdate = (event: CustomEvent) => {
+      setCount(event.detail.count)
+    }
+
+    window.addEventListener("userCountUpdated", handleCountUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener("userCountUpdated", handleCountUpdate as EventListener)
+    }
+  }, [])
 
   // Handle successful registration
   const handleRegistrationSuccess = () => {
@@ -145,75 +183,40 @@ export default function Hero() {
 
             {/* Register Now button and Learn More button */}
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-8">
-              {/* Active users widget */}
+              {/* User counter widget - styled like Learn More button */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
-                className="flex items-center bg-white border-2 border-black px-4 py-3 rounded-lg"
+                className={`flex items-center ${counterUpdated ? "animate-pulse" : ""}`}
               >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="mr-2"
-                >
-                  <path
-                    d="M17 21V19C17 16.7909 15.2091 15 13 15H5C2.79086 15 1 16.7909 1 19V21"
-                    stroke="black"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z"
-                    stroke="black"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M23 21V19C22.9986 17.1771 21.765 15.5857 20 15.13"
-                    stroke="black"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M16 3.13C17.7699 3.58317 19.0078 5.17799 19.0078 7.005C19.0078 8.83201 17.7699 10.4268 16 10.88"
-                    stroke="black"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="text-gray-700 mr-2 font-medium">Active Users:</span>
-                <Counter endValue={12458} duration={2000} />
+                <div className="flex items-center border-2 border-black rounded-md px-3 py-1.5 bg-white hover:bg-gray-50 transition-colors">
+                  <Users className="h-4 w-4 mr-2" />
+                  <span className="font-medium">{isLoading ? "..." : count?.toLocaleString() || "500+"}</span>
+                </div>
               </motion.div>
 
-              <SignInModal
-                trigger={
-                  <DoodleButton size="lg" variant="primary" className="group">
-                    Register Now
-                  </DoodleButton>
-                }
-                isRegister={true}
+              <ActionButton
+                config={getButtonConfig("REGISTER", {
+                  variant: "primary",
+                  destination: "/profile",
+                })}
                 onSuccess={handleRegistrationSuccess}
               />
 
-              <Link href="/how-it-works">
-                <DoodleButton size="lg" variant="outline" className="group">
-                  Learn More
+              <ActionButton
+                config={getButtonConfig("HOW_IT_WORKS", {
+                  variant: "outline",
+                })}
+                icon={
                   <motion.span
                     animate={{ x: [0, 5, 0] }}
                     transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1.5, ease: "easeInOut" }}
                   >
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </motion.span>
-                </DoodleButton>
-              </Link>
+                }
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -245,204 +248,201 @@ export default function Hero() {
             <div className="relative w-full h-[450px] md:h-[550px]">
               <div className="absolute inset-0 bg-white border-2 border-black rounded-2xl overflow-hidden">
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[400px]">
-                  {/* Hand-drawn doodle visualization */}
-                  <div className="relative">
-                    {/* Central hub */}
-                    <motion.div
-                      animate={{
-                        scale: [1, 1.05, 1],
-                        rotate: [0, 5, 0, -5, 0],
-                      }}
-                      transition={{
-                        duration: 8,
-                        ease: "easeInOut",
-                        repeat: Number.POSITIVE_INFINITY,
-                      }}
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-white border-2 border-black rounded-full"
+                  {/* Central hub */}
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.05, 1],
+                      rotate: [0, 5, 0, -5, 0],
+                    }}
+                    transition={{
+                      duration: 8,
+                      ease: "easeInOut",
+                      repeat: Number.POSITIVE_INFINITY,
+                    }}
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-white border-2 border-black rounded-full"
+                  >
+                    <svg
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 160 160"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="absolute inset-0"
                     >
-                      <svg
-                        width="100%"
-                        height="100%"
-                        viewBox="0 0 160 160"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="absolute inset-0"
-                      >
-                        <path
-                          d="M80 40C93.3333 53.3333 106.667 53.3333 120 40"
-                          stroke="#10B84A"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M40 80C53.3333 93.3333 53.3333 106.667 40 120"
-                          stroke="#8B5CF6"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M120 120C106.667 106.667 106.667 93.3333 120 80"
-                          stroke="#EC4899"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M80 120C66.6667 106.667 53.3333 106.667 40 120"
-                          stroke="#10B84A"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r="30"
-                          stroke="#8B5CF6"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeDasharray="5 5"
-                        />
-                      </svg>
-                    </motion.div>
-
-                    {/* Orbiting elements */}
-                    {[...Array(5)].map((_, i) => {
-                      const angle = (i / 5) * Math.PI * 2
-                      const radius = 150
-                      const x = Math.cos(angle) * radius
-                      const y = Math.sin(angle) * radius
-                      const size = 20 + Math.random() * 30
-
-                      return (
-                        <motion.div
-                          key={i}
-                          className="absolute top-1/2 left-1/2 rounded-full bg-white border-2 border-black"
-                          style={{
-                            width: size,
-                            height: size,
-                            marginLeft: -size / 2,
-                            marginTop: -size / 2,
-                          }}
-                          animate={{
-                            x: [x, x * 0.9, x],
-                            y: [y, y * 1.1, y],
-                            scale: [1, 1.1, 1],
-                          }}
-                          transition={{
-                            duration: 3 + i,
-                            repeat: Number.POSITIVE_INFINITY,
-                            ease: "easeInOut",
-                            delay: i * 0.2,
-                          }}
-                        >
-                          {/* Doodle inside circle */}
-                          <svg
-                            width="100%"
-                            height="100%"
-                            viewBox="0 0 40 40"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            {i % 5 === 0 && (
-                              <path
-                                d="M20 10L23 17H30L24 22L27 30L20 25L13 30L16 22L10 17H17L20 10Z"
-                                stroke="#10B84A"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            )}
-                            {i % 5 === 1 && (
-                              <path
-                                d="M10 10H30V30H10V10Z"
-                                stroke="#8B5CF6"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            )}
-                            {i % 5 === 2 && (
-                              <circle
-                                cx="20"
-                                cy="20"
-                                r="10"
-                                stroke="#EC4899"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            )}
-                            {i % 5 === 3 && (
-                              <path
-                                d="M10 20C10 15 15 10 20 10C25 10 30 15 30 20C30 25 25 30 20 30C15 30 10 25 10 20Z"
-                                stroke="#10B84A"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            )}
-                            {i % 5 === 4 && (
-                              <path
-                                d="M10 15L20 10L30 15L20 20L10 15ZM10 25L20 20L30 25L20 30L10 25Z"
-                                stroke="#8B5CF6"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            )}
-                          </svg>
-                        </motion.div>
-                      )
-                    })}
-
-                    {/* Connection lines */}
-                    <svg className="absolute top-0 left-0 w-full h-full" viewBox="-200 -200 400 400">
-                      <motion.g
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 100, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                      >
-                        {[...Array(20)].map((_, i) => {
-                          const startAngle = (i / 20) * Math.PI * 2
-                          const endAngle = ((i + 10) / 20) * Math.PI * 2
-                          const startRadius = 30 + Math.random() * 20
-                          const endRadius = 120 + Math.random() * 30
-                          const startX = Math.cos(startAngle) * startRadius
-                          const startY = Math.sin(startAngle) * startRadius
-                          const endX = Math.cos(endAngle) * endRadius
-                          const endY = Math.sin(endAngle) * endRadius
-
-                          // Alternate between the three main colors
-                          const colors = ["#10B84A", "#8B5CF6", "#EC4899"]
-                          const colorIndex = i % 3
-
-                          return (
-                            <motion.path
-                              key={i}
-                              d={`M ${startX} ${startY} L ${endX} ${endY}`}
-                              stroke={colors[colorIndex]}
-                              strokeWidth="1"
-                              strokeDasharray="4 4"
-                              initial={{ pathLength: 0, opacity: 0 }}
-                              animate={{
-                                pathLength: 1,
-                                opacity: [0, 0.8, 0],
-                              }}
-                              transition={{
-                                duration: 3 + (i % 3),
-                                repeat: Number.POSITIVE_INFINITY,
-                                ease: "easeInOut",
-                                delay: i * 0.1,
-                              }}
-                            />
-                          )
-                        })}
-                      </motion.g>
+                      <path
+                        d="M80 40C93.3333 53.3333 106.667 53.3333 120 40"
+                        stroke="#10B84A"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M40 80C53.3333 93.3333 53.3333 106.667 40 120"
+                        stroke="#8B5CF6"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M120 120C106.667 106.667 106.667 93.3333 120 80"
+                        stroke="#EC4899"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M80 120C66.6667 106.667 53.3333 106.667 40 120"
+                        stroke="#10B84A"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="30"
+                        stroke="#8B5CF6"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeDasharray="5 5"
+                      />
                     </svg>
-                  </div>
+                  </motion.div>
+
+                  {/* Orbiting elements */}
+                  {[...Array(5)].map((_, i) => {
+                    const angle = (i / 5) * Math.PI * 2
+                    const radius = 150
+                    const x = Math.cos(angle) * radius
+                    const y = Math.sin(angle) * radius
+                    const size = 20 + Math.random() * 30
+
+                    return (
+                      <motion.div
+                        key={i}
+                        className="absolute top-1/2 left-1/2 rounded-full bg-white border-2 border-black"
+                        style={{
+                          width: size,
+                          height: size,
+                          marginLeft: -size / 2,
+                          marginTop: -size / 2,
+                        }}
+                        animate={{
+                          x: [x, x * 0.9, x],
+                          y: [y, y * 1.1, y],
+                          scale: [1, 1.1, 1],
+                        }}
+                        transition={{
+                          duration: 3 + i,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "easeInOut",
+                          delay: i * 0.2,
+                        }}
+                      >
+                        {/* Doodle inside circle */}
+                        <svg
+                          width="100%"
+                          height="100%"
+                          viewBox="0 0 40 40"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          {i % 5 === 0 && (
+                            <path
+                              d="M20 10L23 17H30L24 22L27 30L20 25L13 30L16 22L10 17H17L20 10Z"
+                              stroke="#10B84A"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          )}
+                          {i % 5 === 1 && (
+                            <path
+                              d="M10 10H30V30H10V10Z"
+                              stroke="#8B5CF6"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          )}
+                          {i % 5 === 2 && (
+                            <circle
+                              cx="20"
+                              cy="20"
+                              r="10"
+                              stroke="#EC4899"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          )}
+                          {i % 5 === 3 && (
+                            <path
+                              d="M10 20C10 15 15 10 20 10C25 10 30 15 30 20C30 25 25 30 20 30C15 30 10 25 10 20Z"
+                              stroke="#10B84A"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          )}
+                          {i % 5 === 4 && (
+                            <path
+                              d="M10 15L20 10L30 15L20 20L10 15ZM10 25L20 20L30 25L20 30L10 25Z"
+                              stroke="#8B5CF6"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          )}
+                        </svg>
+                      </motion.div>
+                    )
+                  })}
+
+                  {/* Connection lines */}
+                  <svg className="absolute top-0 left-0 w-full h-full" viewBox="-200 -200 400 400">
+                    <motion.g
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 100, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                    >
+                      {[...Array(20)].map((_, i) => {
+                        const startAngle = (i / 20) * Math.PI * 2
+                        const endAngle = ((i + 10) / 20) * Math.PI * 2
+                        const startRadius = 30 + Math.random() * 20
+                        const endRadius = 120 + Math.random() * 30
+                        const startX = Math.cos(startAngle) * startRadius
+                        const startY = Math.sin(startAngle) * startRadius
+                        const endX = Math.cos(endAngle) * endRadius
+                        const endY = Math.sin(endAngle) * endRadius
+
+                        // Alternate between the three main colors
+                        const colors = ["#10B84A", "#8B5CF6", "#EC4899"]
+                        const colorIndex = i % 3
+
+                        return (
+                          <motion.path
+                            key={i}
+                            d={`M ${startX} ${startY} L ${endX} ${endY}`}
+                            stroke={colors[colorIndex]}
+                            strokeWidth="1"
+                            strokeDasharray="4 4"
+                            initial={{ pathLength: 0, opacity: 0 }}
+                            animate={{
+                              pathLength: 1,
+                              opacity: [0, 0.8, 0],
+                            }}
+                            transition={{
+                              duration: 3 + (i % 3),
+                              repeat: Number.POSITIVE_INFINITY,
+                              ease: "easeInOut",
+                              delay: i * 0.1,
+                            }}
+                          />
+                        )
+                      })}
+                    </motion.g>
+                  </svg>
                 </div>
               </div>
             </div>

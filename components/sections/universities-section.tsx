@@ -163,7 +163,6 @@ export default function UniversitiesSection() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="inline-flex items-center px-6 py-3 border-2 border-black rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-medium transition-colors cursor-pointer"
-                onClick={() => (window.location.href = "/for-universities")}
               >
                 Explore University Partnerships
                 <svg
@@ -180,7 +179,8 @@ export default function UniversitiesSection() {
                 </svg>
               </motion.div>
             }
-            isRegister={false}
+            isRegister={true}
+            redirectPath="/for-universities"
           />
         </div>
       </div>
