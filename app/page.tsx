@@ -12,7 +12,6 @@ import PersonalBrandingSection from "@/components/personal-branding-section"
 import CampusInfluenceProgram from "@/components/campus-influence-program"
 import SocialCommunity from "@/components/social-community"
 import LaunchingSoon from "@/components/launching-soon"
-import { LandingChatbot } from "@/components/landing-chatbot"
 
 export default function Home() {
   useEffect(() => {
@@ -65,9 +64,6 @@ export default function Home() {
 
       {/* Launching Soon Section - Moved to be the last section */}
       <LaunchingSoon />
-
-      {/* Floating Chatbot */}
-      <LandingChatbot />
     </main>
   )
 }

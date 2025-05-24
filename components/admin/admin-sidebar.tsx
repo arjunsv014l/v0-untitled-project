@@ -1,115 +1,91 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
+import { Home, type LucideIcon, Settings, Sparkles, User2, Users } from "lucide-react"
 import { usePathname } from "next/navigation"
-import {
-  Users,
-  FileText,
-  BarChart2,
-  Settings,
-  Bell,
-  MessageSquare,
-  Home,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-} from "lucide-react"
-import { useUser } from "@/context/user-context"
+import Link from "next/link"
 
-export default function AdminSidebar() {
-  const [collapsed, setCollapsed] = useState(false)
+interface NavItem {
+  label: string
+  href: string
+  icon: LucideIcon
+}
+
+const navItems: NavItem[] = [
+  {
+    label: "Dashboard",
+    href: "/admin",
+    icon: Home,
+  },
+  {
+    label: "Users",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
+    label: "Pre-Customers",
+    href: "/admin/pre-customers",
+    icon: User2,
+  },
+]
+
+const settingsItems: NavItem[] = [
+  {
+    label: "Settings",
+    href: "/admin/settings",
+    icon: Settings,
+  },
+]
+
+const AdminSidebar = () => {
   const pathname = usePathname()
-  const { logout } = useUser()
-
-  const navItems = [
-    {
-      label: "Dashboard",
-      icon: <Home className="h-5 w-5" />,
-      href: "/admin/dashboard",
-    },
-    {
-      label: "Users",
-      icon: <Users className="h-5 w-5" />,
-      href: "/admin/users",
-    },
-    {
-      label: "Content",
-      icon: <FileText className="h-5 w-5" />,
-      href: "/admin/content",
-    },
-    {
-      label: "Analytics",
-      icon: <BarChart2 className="h-5 w-5" />,
-      href: "/admin/analytics",
-    },
-    {
-      label: "Messages",
-      icon: <MessageSquare className="h-5 w-5" />,
-      href: "/admin/messages",
-    },
-    {
-      label: "Notifications",
-      icon: <Bell className="h-5 w-5" />,
-      href: "/admin/notifications",
-    },
-    {
-      label: "Settings",
-      icon: <Settings className="h-5 w-5" />,
-      href: "/admin/settings",
-    },
-  ]
-
-  const handleLogout = async () => {
-    await logout()
-    window.location.href = "/"
-  }
 
   return (
-    <div
-      className={`h-screen fixed top-0 left-0 bg-white border-r border-gray-200 transition-all duration-300 z-10 ${
-        collapsed ? "w-20" : "w-64"
-      }`}
-    >
-      <div className="flex flex-col h-full">
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          {!collapsed && <h1 className="text-xl font-bold">Admin Panel</h1>}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+    <div className="flex flex-col h-full py-4">
+      <div className="space-y-2">
+        <h4 className="px-3 font-medium text-sm">Admin</h4>
+        <div className="space-y-1">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                pathname === item.href ? "bg-purple-100 text-purple-700" : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+          <Link
+            href="/admin/test-blog-ai"
+            className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+              pathname === "/admin/test-blog-ai" ? "bg-purple-100 text-purple-700" : "text-gray-700 hover:bg-gray-100"
+            }`}
           >
-            {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-          </button>
+            <Sparkles className="h-5 w-5" />
+            <span>Test Blog AI</span>
+          </Link>
         </div>
-
-        <nav className="flex-1 overflow-y-auto py-4">
-          <ul className="space-y-2 px-2">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center p-3 rounded-lg transition-colors ${
-                    pathname === item.href ? "bg-black text-white" : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <span className="flex-shrink-0">{item.icon}</span>
-                  {!collapsed && <span className="ml-3">{item.label}</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={handleLogout}
-            className="flex items-center w-full p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            <LogOut className="h-5 w-5" />
-            {!collapsed && <span className="ml-3">Logout</span>}
-          </button>
+      </div>
+      <div className="mt-auto space-y-2">
+        <h4 className="px-3 font-medium text-sm">Settings</h4>
+        <div className="space-y-1">
+          {settingsItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                pathname === item.href ? "bg-purple-100 text-purple-700" : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
         </div>
       </div>
     </div>
   )
 }
+
+export default AdminSidebar

@@ -20,6 +20,7 @@ interface Profile {
   location?: string | null
   referral_code?: string | null
   marketing_consent?: boolean | null
+  role?: string | null
 }
 
 // Define the return type for auth operations
@@ -112,6 +113,43 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
         if (profileError) {
           console.error("Error fetching profile:", profileError)
+
+          // If profile doesn't exist, create one
+          if (profileError.code === "PGRST116") {
+            const { data: newProfile, error: createError } = await supabase
+              .from("profiles")
+              .insert({
+                id: session.user.id,
+                email: session.user.email,
+                name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "User",
+                role: "student", // Default role
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                last_login: new Date().toISOString(),
+              })
+              .select()
+              .single()
+
+            if (createError) {
+              console.error("Error creating profile:", createError)
+              setUser(null)
+              return
+            }
+
+            // Create a complete user profile object from the new profile
+            const fullProfile: Profile = {
+              id: session.user.id,
+              email: session.user.email,
+              name: newProfile?.name || session.user.user_metadata?.name || session.user.email?.split("@")[0] || "User",
+              avatar_url: newProfile?.avatar_url || null,
+              role: newProfile?.role || "student",
+            }
+
+            setUser(fullProfile)
+            setIsLoading(false)
+            return
+          }
+
           setUser(null)
           return
         }
@@ -120,7 +158,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const fullProfile: Profile = {
           id: session.user.id,
           email: session.user.email,
-          name: profileData?.name || session.user.user_metadata?.name || null,
+          name: profileData?.name || session.user.user_metadata?.name || session.user.email?.split("@")[0] || "User",
           avatar_url: profileData?.avatar_url || session.user.user_metadata?.avatar_url || null,
           college: profileData?.college || null,
           major: profileData?.major || null,
@@ -130,6 +168,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           location: profileData?.location || null,
           referral_code: profileData?.referral_code || null,
           marketing_consent: profileData?.marketing_consent || false,
+          role: profileData?.role || "student",
         }
 
         setUser(fullProfile)
@@ -178,88 +217,80 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     marketingConsent?: boolean,
   ): Promise<AuthResult> => {
     try {
-      // Use the atomic registration API endpoint for a complete registration flow
-      const response = await fetch("/api/auth/atomic-register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // 1. Create the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            dob,
+          },
         },
-        body: JSON.stringify({
-          email,
-          password,
-          name,
-          dob,
-          avatar,
-          college,
-          major,
-          graduationYear,
-          bio,
-          interests,
-          location,
-          referralCode,
-          marketingConsent,
-        }),
       })
 
-      // Check if the response is ok before trying to parse JSON
-      if (!response.ok) {
-        // Try to parse the error response as JSON
-        let errorMessage = "Registration failed"
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.error || errorMessage
-        } catch (parseError) {
-          // If JSON parsing fails, use the status text
-          errorMessage = `Registration failed: ${response.status} ${response.statusText}`
-          console.error("Error parsing response:", parseError)
-          // Try to get the text content as fallback
-          try {
-            const textContent = await response.text()
-            console.error("Response text content:", textContent)
-            if (textContent) {
-              errorMessage = `Registration failed: ${textContent.substring(0, 100)}...`
-            }
-          } catch (textError) {
-            console.error("Error getting response text:", textError)
-          }
-        }
-
+      if (authError) {
         return {
           success: false,
           error: {
-            code: "registration_failed",
-            message: errorMessage,
+            code: authError.name,
+            message: authError.message,
           },
         }
       }
 
-      // Parse the successful response
-      const data = await response.json()
+      if (!authData.user) {
+        return {
+          success: false,
+          error: {
+            code: "user_creation_failed",
+            message: "Failed to create user account",
+          },
+        }
+      }
 
-      // Sign in the user after registration
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // 2. Create user profile
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: authData.user.id,
+        name,
         email,
-        password,
+        role: "student", // Default role
+        dob: dob || null,
+        avatar_url: avatar || null,
+        college: college || null,
+        major: major || null,
+        graduation_year: graduationYear || null,
+        bio: bio || null,
+        interests: interests ? interests.join(", ") : null,
+        location: location || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_login: new Date().toISOString(),
       })
 
-      if (signInError) {
-        console.error("Error signing in after registration:", signInError)
-        return {
-          success: true, // Registration was successful even if sign-in failed
-          userId: data.userId,
-          error: {
-            code: "signin_failed",
-            message: "Registration successful but automatic sign-in failed. Please sign in manually.",
-          },
-        }
+      if (profileError) {
+        console.error("Error creating profile:", profileError)
+        // Non-critical error, continue
       }
 
-      // Wait a moment for the session to be established
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // 3. Create user settings with defaults
+      const { error: settingsError } = await supabase.from("user_settings").insert({
+        user_id: authData.user.id,
+        theme: "light",
+        notifications_enabled: true,
+        email_notifications: marketingConsent || false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+
+      if (settingsError) {
+        console.error("Error creating user settings:", settingsError)
+        // Non-critical error, continue
+      }
 
       return {
         success: true,
-        userId: data.userId,
+        userId: authData.user.id,
       }
     } catch (error: any) {
       console.error("Registration error:", error)
@@ -290,6 +321,21 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             message: error.message,
           },
         }
+      }
+
+      // Update last login time
+      if (data.user) {
+        await supabase
+          .from("profiles")
+          .update({
+            last_login: new Date().toISOString(),
+          })
+          .eq("id", data.user.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error("Error updating last login:", error)
+            }
+          })
       }
 
       return {
@@ -391,6 +437,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           location: updatedProfile.location || null,
           referral_code: updatedProfile.referral_code || null,
           marketing_consent: updatedProfile.marketing_consent || false,
+          role: updatedProfile.role || "student",
         }
         setUser(fullProfile)
       }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import type { ReactNode } from "react"
 import DoodleBackground from "./ui-elements/doodle-background"
@@ -8,6 +8,7 @@ import DoodleButton from "./ui-elements/doodle-button"
 import { Lock } from "lucide-react"
 import { useUser } from "@/context/user-context"
 import Link from "next/link"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 interface AuthWrapperProps {
   children: ReactNode
@@ -15,16 +16,38 @@ interface AuthWrapperProps {
 }
 
 export default function AuthWrapper({ children, requiredRoles = [] }: AuthWrapperProps) {
-  // Replace the simulated authentication state
   const { user, isLoading } = useUser()
   const isAuthenticated = !!user
   const userRole = user?.role || null
   const router = useRouter()
   const pathname = usePathname()
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
-    // Simulate checking authentication status
-  }, [])
+    const checkAuth = async () => {
+      setIsCheckingAuth(true)
+
+      // Get current session
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession()
+
+      if (error) {
+        console.error("Error checking auth:", error)
+      }
+
+      setIsCheckingAuth(false)
+
+      // If no session and this is a protected route, redirect to login
+      if (!session && requiredRoles.length > 0) {
+        router.push(`/login?redirect=${encodeURIComponent(pathname)}`)
+      }
+    }
+
+    checkAuth()
+  }, [pathname, router, requiredRoles, supabase])
 
   // Check if user has required role
   const hasRequiredRole = () => {
@@ -35,7 +58,7 @@ export default function AuthWrapper({ children, requiredRoles = [] }: AuthWrappe
     return requiredRoles.includes(userRole)
   }
 
-  if (isLoading) {
+  if (isLoading || isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
@@ -55,7 +78,7 @@ export default function AuthWrapper({ children, requiredRoles = [] }: AuthWrappe
             You need to register to access this page. Join our community to unlock all features.
           </p>
           <div className="flex justify-center">
-            <Link href="/register">
+            <Link href={`/register?redirect=${encodeURIComponent(pathname)}`}>
               <DoodleButton size="lg">Register Now</DoodleButton>
             </Link>
           </div>
