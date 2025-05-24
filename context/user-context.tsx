@@ -244,10 +244,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
       if (signInError) {
         console.error("Error signing in after registration:", signInError)
-        // Still return success as registration worked
         return {
-          success: true,
+          success: true, // Registration was successful even if sign-in failed
           userId: data.userId,
+          error: {
+            code: "signin_failed",
+            message: "Registration successful but automatic sign-in failed. Please sign in manually.",
+          },
         }
       }
 

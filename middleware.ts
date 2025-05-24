@@ -19,7 +19,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // Redirect profile completion to dashboard for logged-in users
-  if (req.nextUrl.pathname.startsWith("/profile/complete") && session) {
+  if (req.nextUrl.pathname.startsWith("/profile") && session) {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
