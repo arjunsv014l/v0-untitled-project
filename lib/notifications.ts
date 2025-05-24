@@ -1,5 +1,4 @@
-import { db } from "./firebase"
-import { collection, addDoc } from "firebase/firestore"
+import { supabase } from "./supabase"
 
 export type NotificationType = "info" | "success" | "warning" | "error"
 
@@ -13,16 +12,17 @@ interface SendNotificationParams {
 
 export const sendNotification = async ({ userId, title, message, type = "info", link }: SendNotificationParams) => {
   try {
-    const notificationsRef = collection(db, "users", userId, "notifications")
-    await addDoc(notificationsRef, {
-      userId,
+    const { error } = await supabase.from("notifications").insert({
+      user_id: userId,
       title,
       message,
       type,
       link,
       read: false,
-      createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     })
+
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error sending notification:", error)
@@ -35,13 +35,19 @@ export const sendNotificationToMultipleUsers = async (
   notification: Omit<SendNotificationParams, "userId">,
 ) => {
   try {
-    const promises = userIds.map((userId) =>
-      sendNotification({
-        userId,
-        ...notification,
-      }),
-    )
-    await Promise.all(promises)
+    const notifications = userIds.map((userId) => ({
+      user_id: userId,
+      title: notification.title,
+      message: notification.message,
+      type: notification.type || "info",
+      link: notification.link,
+      read: false,
+      created_at: new Date().toISOString(),
+    }))
+
+    const { error } = await supabase.from("notifications").insert(notifications)
+
+    if (error) throw error
     return { success: true }
   } catch (error) {
     console.error("Error sending notifications to multiple users:", error)
