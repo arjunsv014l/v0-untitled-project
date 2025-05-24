@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/context/user-context"
-import { Loader2, LogOut, Rocket, Star, Calendar, Bell, Users, BookOpen } from "lucide-react"
+import { Loader2, LogOut } from "lucide-react"
 import DoodleCard from "@/components/ui-elements/doodle-card"
 import DoodleButton from "@/components/ui-elements/doodle-button"
 import { motion } from "framer-motion"
@@ -11,45 +11,12 @@ import { motion } from "framer-motion"
 export default function DashboardPage() {
   const { user, isLoading, logout } = useUser()
   const router = useRouter()
-  const [days, setDays] = useState(30)
-  const [hours, setHours] = useState(0)
-  const [minutes, setMinutes] = useState(0)
-  const [seconds, setSeconds] = useState(0)
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/login")
     }
   }, [user, isLoading, router])
-
-  useEffect(() => {
-    // Set launch date to 30 days from now
-    const launchDate = new Date()
-    launchDate.setDate(launchDate.getDate() + 30)
-
-    const timer = setInterval(() => {
-      const now = new Date()
-      const difference = launchDate.getTime() - now.getTime()
-
-      const d = Math.floor(difference / (1000 * 60 * 60 * 24))
-      const h = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const m = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
-      const s = Math.floor((difference % (1000 * 60)) / 1000)
-
-      setDays(d)
-      setHours(h)
-      setMinutes(m)
-      setSeconds(s)
-
-      if (difference <= 0) {
-        clearInterval(timer)
-      }
-    }, 1000)
-
-    return () => {
-      clearInterval(timer)
-    }
-  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -99,125 +66,62 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Welcome Section */}
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Welcome Message */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="text-center mb-10"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">Welcome, {user.name?.split(" ")[0] || "Friend"}!</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+            Welcome to Dreamclerk, {user.name?.split(" ")[0] || "Friend"}!
+          </h2>
           <p className="text-gray-600 text-lg">
-            Thank you for joining Dreamclerk. Get ready for an amazing journey ahead!
+            Your account has been successfully created. We're excited to have you on board!
           </p>
         </motion.div>
 
-        {/* Launching Soon Widget */}
+        {/* Main Dashboard Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <DoodleCard className="p-6 mb-10 relative overflow-hidden bg-gradient-to-br from-purple-50 to-indigo-50">
-            {/* Animated stars */}
-            <div className="absolute inset-0 overflow-hidden">
-              {[...Array(15)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute"
-                  initial={{
-                    x: Math.random() * 100 + "%",
-                    y: Math.random() * 100 + "%",
-                    opacity: Math.random() * 0.5 + 0.3,
-                    scale: Math.random() * 0.5 + 0.5,
-                  }}
-                  animate={{
-                    opacity: [null, 1, 0.3],
-                    scale: [null, 1.2, 0.8],
-                  }}
-                  transition={{
-                    duration: Math.random() * 3 + 2,
-                    repeat: Number.POSITIVE_INFINITY,
-                    repeatType: "reverse",
-                  }}
-                >
-                  <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="relative z-10">
-              <div className="flex items-center justify-center mb-4">
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                  className="bg-gradient-to-br from-purple-500 to-indigo-600 p-3 rounded-full shadow-lg"
-                >
-                  <Rocket className="h-8 w-8 text-white" />
-                </motion.div>
-              </div>
-
-              <h3 className="text-2xl md:text-3xl font-bold text-center mb-6">Launching Soon!</h3>
-
-              <p className="text-center text-gray-600 mb-8">
-                We're building something incredible. Stay tuned for exciting features!
+          <DoodleCard className="p-8 text-center">
+            <h3 className="text-2xl font-bold mb-4">🚀 Launching Soon!</h3>
+            <p className="text-gray-600 mb-6">
+              We're working hard to bring you amazing features. Stay tuned for updates!
+            </p>
+            <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg p-6">
+              <p className="text-lg font-medium text-gray-800">
+                Thank you for being an early adopter. Great things are coming!
               </p>
-
-              <div className="grid grid-cols-4 gap-2 md:gap-4 mb-6 max-w-md mx-auto">
-                <div className="bg-white rounded-lg p-3 text-center border-2 border-purple-200 shadow-sm">
-                  <div className="text-xl md:text-3xl font-bold text-purple-700">{days}</div>
-                  <div className="text-xs md:text-sm text-purple-600">Days</div>
-                </div>
-                <div className="bg-white rounded-lg p-3 text-center border-2 border-indigo-200 shadow-sm">
-                  <div className="text-xl md:text-3xl font-bold text-indigo-700">{hours}</div>
-                  <div className="text-xs md:text-sm text-indigo-600">Hours</div>
-                </div>
-                <div className="bg-white rounded-lg p-3 text-center border-2 border-blue-200 shadow-sm">
-                  <div className="text-xl md:text-3xl font-bold text-blue-700">{minutes}</div>
-                  <div className="text-xs md:text-sm text-blue-600">Minutes</div>
-                </div>
-                <div className="bg-white rounded-lg p-3 text-center border-2 border-cyan-200 shadow-sm">
-                  <div className="text-xl md:text-3xl font-bold text-cyan-700">{seconds}</div>
-                  <div className="text-xs md:text-sm text-cyan-600">Seconds</div>
-                </div>
-              </div>
             </div>
           </DoodleCard>
         </motion.div>
 
-        {/* Coming Soon Features */}
+        {/* User Info Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-8"
         >
-          <h3 className="text-xl font-bold mb-6 text-center">What's Coming</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <DoodleCard className="p-4 text-center hover:shadow-lg transition-shadow">
-              <Calendar className="h-8 w-8 mx-auto mb-3 text-purple-600" />
-              <h4 className="font-semibold mb-2">Events</h4>
-              <p className="text-sm text-gray-600">Campus events and networking</p>
-            </DoodleCard>
-
-            <DoodleCard className="p-4 text-center hover:shadow-lg transition-shadow">
-              <Bell className="h-8 w-8 mx-auto mb-3 text-blue-600" />
-              <h4 className="font-semibold mb-2">Notifications</h4>
-              <p className="text-sm text-gray-600">Personalized alerts</p>
-            </DoodleCard>
-
-            <DoodleCard className="p-4 text-center hover:shadow-lg transition-shadow">
-              <Users className="h-8 w-8 mx-auto mb-3 text-green-600" />
-              <h4 className="font-semibold mb-2">Community</h4>
-              <p className="text-sm text-gray-600">Connect with peers</p>
-            </DoodleCard>
-
-            <DoodleCard className="p-4 text-center hover:shadow-lg transition-shadow">
-              <BookOpen className="h-8 w-8 mx-auto mb-3 text-amber-600" />
-              <h4 className="font-semibold mb-2">Resources</h4>
-              <p className="text-sm text-gray-600">Guides and tools</p>
-            </DoodleCard>
-          </div>
+          <DoodleCard className="p-6">
+            <h4 className="font-semibold mb-4">Your Account Information</h4>
+            <div className="space-y-2 text-gray-600">
+              <p>
+                <span className="font-medium">Name:</span> {user.name}
+              </p>
+              <p>
+                <span className="font-medium">Email:</span> {user.email}
+              </p>
+              <p>
+                <span className="font-medium">Member Since:</span> {new Date().toLocaleDateString()}
+              </p>
+            </div>
+          </DoodleCard>
         </motion.div>
       </div>
     </div>

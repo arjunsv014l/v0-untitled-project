@@ -7,7 +7,25 @@ export async function middleware(req: NextRequest) {
   const supabase = createMiddlewareClient({ req, res })
 
   // Refresh session if expired - required for Server Components
-  await supabase.auth.getSession()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  // Protect dashboard route
+  if (req.nextUrl.pathname.startsWith("/dashboard")) {
+    if (!session) {
+      return NextResponse.redirect(new URL("/login", req.url))
+    }
+  }
+
+  // Redirect profile completion to dashboard for logged-in users
+  if (req.nextUrl.pathname.startsWith("/profile/complete") && session) {
+    return NextResponse.redirect(new URL("/dashboard", req.url))
+  }
 
   return res
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*", "/profile/:path*"],
 }

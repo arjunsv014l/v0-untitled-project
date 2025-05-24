@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,7 +28,12 @@ export default function LoginPage() {
       const result = await login(email, password)
 
       if (result.success) {
-        router.push("/dashboard")
+        setSuccess("Login successful! Redirecting...")
+
+        // Direct redirect to dashboard
+        setTimeout(() => {
+          router.push("/dashboard")
+        }, 1500)
       } else {
         setError(result.error?.message || "Login failed")
       }
@@ -78,6 +84,7 @@ export default function LoginPage() {
           </div>
 
           {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+          {success && <div className="text-green-500 text-sm text-center">{success}</div>}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
