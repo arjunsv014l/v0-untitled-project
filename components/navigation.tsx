@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu, X, ChevronDown, User } from "lucide-react"
+import { Menu, X, ChevronDown, LogOut } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useUser } from "@/context/user-context"
 import DoodleButton from "./ui-elements/doodle-button"
@@ -45,20 +45,12 @@ export default function Navigation() {
     window.scrollTo(0, 0)
   }
 
-  // Update the navItems array to include the AI Assistant link
+  // Update the navItems array to include only essential links
   const navItems = [
     { label: "Home", href: "/" },
-    { label: "For Freshers", href: "/for-freshers" },
-    { label: "For Students", href: "/for-students" },
-    { label: "For Companies", href: "/for-companies" },
-    { label: "For Universities", href: "/for-universities" },
-    { label: "Career", href: "/influence" },
-    { label: "AI Assistant", href: "/ai-assistant" },
     { label: "How It Works", href: "/how-it-works" },
+    { label: "FAQ", href: "/faq" },
   ]
-
-  // Removed profile from loggedInNavItems, only keeping Dashboard
-  const loggedInNavItems = [{ label: "Dashboard", href: "/dashboard" }]
 
   // Detect when a user first logs in
   useEffect(() => {
@@ -143,12 +135,12 @@ export default function Navigation() {
                       <div className="py-1">
                         <button
                           onClick={() => {
-                            handleNavigation("/dashboard?mode=edit")
+                            handleNavigation("/dashboard")
                             setIsProfileOpen(false)
                           }}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
-                          Edit Profile
+                          Dashboard
                         </button>
                         <button
                           onClick={handleLogout}
@@ -227,11 +219,11 @@ export default function Navigation() {
 
                     <div className="space-y-2">
                       <button
-                        onClick={() => handleNavigation("/dashboard?mode=edit")}
-                        className="block w-full p-2 text-sm text-left rounded-lg hover:bg-gray-100"
+                        onClick={() => handleNavigation("/dashboard")}
+                        className="flex items-center w-full p-2 text-sm text-left rounded-lg hover:bg-gray-100"
                       >
-                        <User className="inline-block h-4 w-4 mr-2" />
-                        Edit Profile
+                        <LogOut className="inline-block h-4 w-4 mr-2" />
+                        Dashboard
                       </button>
                       <ActionButton config={getButtonConfig("LOGOUT", { className: "w-full" })} />
                     </div>
