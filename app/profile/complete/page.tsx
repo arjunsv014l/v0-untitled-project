@@ -7,8 +7,8 @@ export default function ProfileCompletePage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Always redirect to dashboard - no profile completion needed
-    router.push("/dashboard")
+    // Always redirect to dashboard - profile page is eliminated
+    router.replace("/dashboard")
   }, [router])
 
   return null

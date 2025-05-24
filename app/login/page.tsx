@@ -46,12 +46,12 @@ export default function Login() {
       const result = await login(formData.email, formData.password)
 
       if (result.success) {
-        setSuccess("Login successful! Redirecting...")
+        setSuccess("Login successful! Redirecting to dashboard...")
 
-        // Redirect directly to dashboard
+        // Direct redirect to dashboard
         setTimeout(() => {
           router.push("/dashboard")
-        }, 1000)
+        }, 1500)
       } else {
         setError(result.error?.message || "Login failed. Please check your credentials.")
       }

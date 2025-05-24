@@ -18,9 +18,13 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Redirect profile completion to dashboard for logged-in users
-  if (req.nextUrl.pathname.startsWith("/profile") && session) {
-    return NextResponse.redirect(new URL("/dashboard", req.url))
+  // Redirect ALL profile pages to dashboard for logged-in users
+  if (req.nextUrl.pathname.startsWith("/profile")) {
+    if (session) {
+      return NextResponse.redirect(new URL("/dashboard", req.url))
+    } else {
+      return NextResponse.redirect(new URL("/login", req.url))
+    }
   }
 
   return res
