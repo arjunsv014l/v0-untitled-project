@@ -254,36 +254,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         }
       }
 
-      // Wait a moment for the auth state to propagate
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      // Trigger a refresh of user data
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (session) {
-        // Get fresh profile data
-        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
-
-        if (profileData) {
-          const fullProfile: Profile = {
-            id: session.user.id,
-            email: session.user.email,
-            name: profileData.name || data.name,
-            avatar_url: profileData.avatar_url || null,
-            college: profileData.college || data.college || null,
-            major: profileData.major || data.major || null,
-            graduation_year: profileData.graduation_year || null,
-            bio: profileData.bio || null,
-            interests: profileData.interests ? profileData.interests.split(",").map((i) => i.trim()) : null,
-            location: profileData.location || null,
-            referral_code: profileData.referral_code || null,
-            marketing_consent: profileData.marketing_consent || false,
-          }
-          setUser(fullProfile)
-        }
-      }
-
       return {
         success: true,
         userId: data.userId,

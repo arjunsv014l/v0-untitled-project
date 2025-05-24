@@ -58,8 +58,8 @@ export default function RegistrationForm() {
       )
 
       if (result.success) {
-        // Redirect directly to profile edit page after successful registration
-        router.push("/profile/edit?welcome=true")
+        // Redirect to dashboard with profile edit mode activated
+        router.push("/dashboard?mode=edit&newUser=true")
       } else {
         setError(result.error?.message || "Registration failed. Please try again.")
       }

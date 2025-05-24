@@ -7,12 +7,13 @@ import { useUser } from "@/context/user-context"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { Loader2, Camera } from "lucide-react"
+import { Loader2, Camera, AlertCircle, RefreshCw } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import DoodleCard from "@/components/ui-elements/doodle-card"
 import { supabase } from "@/lib/supabase"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 // Define the form schema with validation
 const formSchema = z.object({
@@ -27,15 +28,18 @@ type FormValues = z.infer<typeof formSchema>
 
 interface ProfileEditorProps {
   onSaved?: () => void
+  isNewUser?: boolean
 }
 
-export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
+export default function ProfileEditor({ onSaved, isNewUser = false }: ProfileEditorProps) {
   const { user, isLoading, updateProfile } = useUser()
   const [isSaving, setIsSaving] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null)
   const [avatar, setAvatar] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [formKey, setFormKey] = useState(0) // Add key to force re-render
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Initialize form with react-hook-form and zod validation
   const form = useForm<FormValues>({
@@ -51,30 +55,78 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
 
   // Load user data into form when available or when user changes
   useEffect(() => {
-    if (user) {
-      // Reset form with current user data
-      form.reset({
-        name: user.name || "",
-        bio: user.bio || "",
-        college: user.college || "",
-        major: user.major || "",
-        location: user.location || "",
-      })
+    const loadUserData = async () => {
+      setLoadError(null)
 
-      // Update avatar preview
-      if (user.avatar_url) {
-        setAvatarPreview(user.avatar_url)
-      } else {
-        setAvatarPreview(null)
+      if (!user) return
+
+      try {
+        // For new users, we might want to refresh the profile data from the server
+        // to ensure we have the most up-to-date information
+        if (isNewUser) {
+          setIsRefreshing(true)
+
+          // Fetch the latest profile data from Supabase
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single()
+
+          if (profileError) {
+            throw new Error(`Failed to load profile data: ${profileError.message}`)
+          }
+
+          // Reset form with the latest data
+          form.reset({
+            name: profileData?.name || user.name || "",
+            bio: profileData?.bio || user.bio || "",
+            college: profileData?.college || user.college || "",
+            major: profileData?.major || user.major || "",
+            location: profileData?.location || user.location || "",
+          })
+
+          // Update avatar preview
+          if (profileData?.avatar_url) {
+            setAvatarPreview(profileData.avatar_url)
+          } else if (user.avatar_url) {
+            setAvatarPreview(user.avatar_url)
+          } else {
+            setAvatarPreview(null)
+          }
+        } else {
+          // Regular update for existing users
+          form.reset({
+            name: user.name || "",
+            bio: user.bio || "",
+            college: user.college || "",
+            major: user.major || "",
+            location: user.location || "",
+          })
+
+          // Update avatar preview
+          if (user.avatar_url) {
+            setAvatarPreview(user.avatar_url)
+          } else {
+            setAvatarPreview(null)
+          }
+        }
+
+        // Clear any existing file selection
+        setAvatar(null)
+
+        // Force form re-render by updating key
+        setFormKey((prev) => prev + 1)
+      } catch (error: any) {
+        console.error("Error loading profile data:", error)
+        setLoadError(error.message || "Failed to load profile data. Please try refreshing the page.")
+      } finally {
+        setIsRefreshing(false)
       }
-
-      // Clear any existing file selection
-      setAvatar(null)
-
-      // Force form re-render by updating key
-      setFormKey((prev) => prev + 1)
     }
-  }, [user, form])
+
+    loadUserData()
+  }, [user, form, isNewUser])
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -170,10 +222,80 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
     }
   }
 
-  if (isLoading) {
+  const handleRefresh = async () => {
+    if (!user) return
+
+    setIsRefreshing(true)
+    setLoadError(null)
+
+    try {
+      // Fetch the latest profile data from Supabase
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
+      if (profileError) {
+        throw new Error(`Failed to refresh profile data: ${profileError.message}`)
+      }
+
+      // Reset form with the latest data
+      form.reset({
+        name: profileData?.name || "",
+        bio: profileData?.bio || "",
+        college: profileData?.college || "",
+        major: profileData?.major || "",
+        location: profileData?.location || "",
+      })
+
+      // Update avatar preview
+      if (profileData?.avatar_url) {
+        setAvatarPreview(profileData.avatar_url)
+      } else {
+        setAvatarPreview(null)
+      }
+
+      // Clear any existing file selection
+      setAvatar(null)
+
+      // Force form re-render by updating key
+      setFormKey((prev) => prev + 1)
+
+      setMessage({
+        type: "success",
+        text: "Profile data refreshed successfully",
+      })
+    } catch (error: any) {
+      console.error("Error refreshing profile data:", error)
+      setLoadError(error.message || "Failed to refresh profile data. Please try again.")
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
+  if (isLoading || isRefreshing) {
     return (
-      <div className="flex justify-center items-center py-12">
+      <div className="flex flex-col justify-center items-center py-12 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <p className="text-gray-600">{isRefreshing ? "Refreshing profile data..." : "Loading profile..."}</p>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="py-8">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{loadError}</AlertDescription>
+        </Alert>
+        <div className="flex justify-center">
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
       </div>
     )
   }
@@ -188,6 +310,13 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
 
   return (
     <DoodleCard className="p-6" key={formKey}>
+      {isNewUser && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800">
+          <h3 className="font-medium text-lg mb-2">Welcome to Dreamclerk!</h3>
+          <p>Please take a moment to complete your profile information below.</p>
+        </div>
+      )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Avatar Upload */}
@@ -307,28 +436,12 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
 
           <div className="flex justify-end gap-3">
             {/* Add a refresh button to manually sync data */}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                // Force refresh the form with current user data
-                if (user) {
-                  form.reset({
-                    name: user.name || "",
-                    bio: user.bio || "",
-                    college: user.college || "",
-                    major: user.major || "",
-                    location: user.location || "",
-                  })
-                  setAvatarPreview(user.avatar_url || null)
-                  setAvatar(null)
-                  setMessage({
-                    type: "success",
-                    text: "Form refreshed with latest data",
-                  })
-                }
-              }}
-            >
+            <Button type="button" variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+              {isRefreshing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
               Refresh
             </Button>
             <Button type="submit" disabled={isSaving}>
