@@ -69,7 +69,7 @@ export default function DashboardPage() {
     // Show success notification
     setNotification({
       type: "success",
-      message: "Profile updated successfully!",
+      message: "Profile updated successfully and saved to database!",
     })
   }
 
