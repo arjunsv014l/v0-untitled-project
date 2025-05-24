@@ -126,11 +126,22 @@ export async function POST(request: Request) {
         throw settingsError
       }
 
-      // 5. Increment user counter
-      await supabase.rpc("increment_user_count").catch((counterError) => {
-        console.warn("Warning: Failed to increment user count:", counterError)
-        // Continue despite counter error
-      })
+      // 5. Update user counter to match actual registration count
+      const { count: registrationCount } = await supabase
+        .from("registrations")
+        .select("*", { count: "exact", head: true })
+
+      await supabase
+        .from("stats")
+        .upsert({
+          name: "user_counter",
+          count: registrationCount || 0,
+          updated_at: new Date().toISOString(),
+        })
+        .catch((counterError) => {
+          console.warn("Warning: Failed to update user count:", counterError)
+          // Continue despite counter error
+        })
 
       // Commit transaction
       const { error: commitError } = await supabase.rpc("commit_transaction")

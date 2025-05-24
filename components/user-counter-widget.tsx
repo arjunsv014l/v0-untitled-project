@@ -5,9 +5,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Users } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
-// Base count value - we treat this as "zero"
-const BASE_COUNT = 500
-
 export async function getUserCountFromSupabase() {
   try {
     // Get the actual registration count from the database
@@ -17,15 +14,14 @@ export async function getUserCountFromSupabase() {
 
     if (countError) {
       console.error("Error getting registration count:", countError)
-      return BASE_COUNT // Default fallback value
+      return 0 // Return 0 instead of BASE_COUNT on error
     }
 
-    // Calculate the counter value based on BASE_COUNT + actual registrations
-    const actualCount = registrationCount || 0
-    return BASE_COUNT + actualCount
+    // Return the actual count without adding BASE_COUNT
+    return registrationCount || 0
   } catch (error) {
     console.error("Error in getUserCountFromSupabase:", error)
-    return BASE_COUNT
+    return 0
   }
 }
 
@@ -39,7 +35,7 @@ export async function incrementUserCount() {
       localStorage.setItem("pendingCounterIncrements", pendingIncrements.toString())
 
       // Get current local count and increment it
-      const currentLocalCount = Number.parseInt(localStorage.getItem("userCount") || BASE_COUNT.toString())
+      const currentLocalCount = Number.parseInt(localStorage.getItem("userCount") || "0")
       const newCount = currentLocalCount + 1
       localStorage.setItem("userCount", newCount.toString())
 
@@ -60,7 +56,7 @@ export async function incrementUserCount() {
 
     // Calculate the counter value based on BASE_COUNT + actual registrations
     const actualCount = registrationCount || 0
-    const newCount = BASE_COUNT + actualCount
+    const newCount = actualCount
 
     // Update the counter in Supabase stats table to match the actual registration count
     const { error: updateError } = await supabase.from("stats").update({ count: newCount }).eq("name", "user_counter")
@@ -83,7 +79,7 @@ export async function incrementUserCount() {
     console.error("Error incrementing user count:", error)
 
     // Fallback to local storage
-    const currentLocalCount = Number.parseInt(localStorage.getItem("userCount") || BASE_COUNT.toString())
+    const currentLocalCount = Number.parseInt(localStorage.getItem("userCount") || "0")
     const newCount = currentLocalCount + 1
     localStorage.setItem("userCount", newCount.toString())
 
@@ -95,14 +91,13 @@ export async function incrementUserCount() {
 }
 
 export default function UserCounterWidget() {
-  const [count, setCount] = useState(BASE_COUNT)
+  const [count, setCount] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const pathRef = useRef<SVGPathElement>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Function to refresh the counter from the database
   const refreshCounter = async () => {
     try {
       // Get the actual registration count from the database
@@ -115,12 +110,15 @@ export default function UserCounterWidget() {
         return
       }
 
-      // Calculate the counter value based on BASE_COUNT + actual registrations
-      const actualCount = registrationCount || 0
-      const dbCount = BASE_COUNT + actualCount
+      // Use the actual count without BASE_COUNT
+      const dbCount = registrationCount || 0
 
       // Also update the stats table to ensure consistency
-      await supabase.from("stats").update({ count: dbCount }).eq("name", "user_counter")
+      await supabase.from("stats").upsert({
+        name: "user_counter",
+        count: dbCount,
+        updated_at: new Date().toISOString(),
+      })
 
       // Only update if the count has changed
       if (dbCount !== count) {
@@ -156,7 +154,7 @@ export default function UserCounterWidget() {
               console.log("Real-time counter update received:", payload)
               const newCount = payload.new.count
               // Ensure the count is never less than BASE_COUNT
-              const finalCount = newCount < BASE_COUNT ? BASE_COUNT : newCount
+              const finalCount = newCount < 0 ? 0 : newCount
               setCount(finalCount)
               setIsAnimating(true)
               setTimeout(() => setIsAnimating(false), 1000)
@@ -189,8 +187,8 @@ export default function UserCounterWidget() {
       if (storedCount) {
         setCount(Number.parseInt(storedCount))
       } else {
-        setCount(BASE_COUNT)
-        localStorage.setItem("userCount", BASE_COUNT.toString())
+        setCount(0)
+        localStorage.setItem("userCount", "0")
       }
       setIsLoading(false)
     }
@@ -199,7 +197,7 @@ export default function UserCounterWidget() {
     const handleCountUpdate = (event: CustomEvent) => {
       const newCount = event.detail.count
       // Ensure the count is never less than BASE_COUNT
-      const finalCount = newCount < BASE_COUNT ? BASE_COUNT : newCount
+      const finalCount = newCount < 0 ? 0 : newCount
       setCount(finalCount)
       setIsAnimating(true)
       setTimeout(() => setIsAnimating(false), 1000)
@@ -240,7 +238,7 @@ export default function UserCounterWidget() {
 
       // Calculate the counter value based on BASE_COUNT + actual registrations
       const actualCount = registrationCount || 0
-      const newCount = BASE_COUNT + actualCount
+      const newCount = actualCount
 
       // Update the stats table
       await supabase.from("stats").update({ count: newCount }).eq("name", "user_counter")

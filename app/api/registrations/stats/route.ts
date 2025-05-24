@@ -42,11 +42,14 @@ export async function GET(request: Request) {
     }, {})
 
     // Update the user counter in the stats table to match the actual registration count
-    const BASE_COUNT = 500
-    const userCount = BASE_COUNT + (totalRegistrations || 0)
+    const userCount = totalRegistrations || 0
 
     // Update the stats table to ensure it matches the actual registration count
-    const { error: updateError } = await supabase.from("stats").update({ count: userCount }).eq("name", "user_counter")
+    const { error: updateError } = await supabase.from("stats").upsert({
+      name: "user_counter",
+      count: userCount,
+      updated_at: new Date().toISOString(),
+    })
 
     if (updateError) {
       console.error("Error updating user counter:", updateError)
