@@ -1,15 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import EnhancedProfileCompletion from "@/components/profile/enhanced-profile-completion"
 
 export default function ProfileCompletePage() {
-  const router = useRouter()
-
-  useEffect(() => {
-    // Always redirect to dashboard - no profile completion needed
-    router.push("/dashboard")
-  }, [router])
-
-  return null
+  return <EnhancedProfileCompletion />
 }

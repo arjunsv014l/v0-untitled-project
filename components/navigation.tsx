@@ -163,7 +163,10 @@ export default function Navigation() {
               </div>
             </div>
           ) : (
-            <ActionButton config={getButtonConfig("REGISTER", { size: "sm" })} />
+            <div className="flex items-center space-x-3">
+              <ActionButton config={getButtonConfig("LOGIN", { size: "sm" })} />
+              <ActionButton config={getButtonConfig("REGISTER", { size: "sm" })} />
+            </div>
           )}
         </div>
 
@@ -238,6 +241,7 @@ export default function Navigation() {
                   </div>
                 ) : (
                   <div className="flex flex-col space-y-3">
+                    <ActionButton config={getButtonConfig("LOGIN", { className: "w-full" })} />
                     <ActionButton config={getButtonConfig("REGISTER", { className: "w-full" })} />
                   </div>
                 )}
