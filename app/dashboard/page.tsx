@@ -3,9 +3,8 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/context/user-context"
-import { Loader2, LogOut } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import DoodleCard from "@/components/ui-elements/doodle-card"
-import DoodleButton from "@/components/ui-elements/doodle-button"
 import { motion } from "framer-motion"
 
 export default function DashboardPage() {
@@ -51,17 +50,6 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold">Dashboard</h1>
-            <div className="flex items-center gap-4">
-              {/* User Icon with Initials */}
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md">
-                {getUserInitials()}
-              </div>
-              {/* Logout Button */}
-              <DoodleButton onClick={handleLogout} size="sm" variant="outline">
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </DoodleButton>
-            </div>
           </div>
         </div>
       </div>
